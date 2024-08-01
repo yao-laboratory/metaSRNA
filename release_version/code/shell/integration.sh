@@ -3,9 +3,9 @@
 module load blast/2.14
 module load biodata/1.0
 
-mapping_species=$1
-mapping_mirna=$2
-code_path=$3
+code_path=$1
+mapping_species=$2
+mapping_mirna=$3
 output_folder=$4
 
 ###need modify python code

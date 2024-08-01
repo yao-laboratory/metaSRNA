@@ -1,13 +1,15 @@
 #!/bin/bash
+# Exit immediately if any command fails
+set -e
 
-raw_data=$1
-clean_fasta_file=$2
-mapping_filter_score_species_file=$3
-fna_file=$4
-datbase_name=$5
-code_path=$6
-middle_results=$7
-results=$8
+datbase_name=$1
+code_path=$2
+raw_data=$3
+clean_fasta_file=$4
+mapping_filter_score_species_file=$5
+fna_file=$6
+results=$7
+
 ### need cd to the folder which will let all the running file to this folder
 cd $clean_fastaq/shared/code/after_cleaning
 set -e

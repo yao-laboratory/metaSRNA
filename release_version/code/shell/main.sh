@@ -27,33 +27,87 @@ log_error() {
 usage() {
     cat <<EOF
 Usage: $0 -p <program> [options]
+
+Programs and their Required Options:
+  extract
+    - Extract data from raw input files.
+    - Options:
+      -r <raw_data>         Path to the raw data file.
+      -o <output_folder>    Output folder including (clean fasta file and corresponding umi file)
+
+  detect_species
+    - Detect Top nth species in clean fasta data.
+    - Options:
+      -c <clean_fasta_file> Path to the clean FASTA file.
+      -o <output_folder>    Output folder including (combined fna and (combined?) gtf files)
+
+  map_genome
+    - Map genome sequences against a reference database.
+    - Options:
+      -f <fna_file>          Path to the FNA file.
+      -c <clean_fasta_file>  Path to the cleaned FASTA file.
+      -d <database>          Path to the database directory.
+      -n <database_name>     Name of the species combine database.
+      -o <output_folder>     Output folder including (filter score results about mapping top species database and analysis csv about percentage of mapping)
+
+  quantify
+    - Quantify the analysis results based on mapped data.
+    - Options:
+      -g <gtf_file>            Path to the GTF file.
+      -m <mapping_filter_file> Path to the mapping filter score file.
+      -u <umi_file>            Path to the UMI file.
+      -o <output_folder>       Output folder including (quantified csv files)
+
+  map_miRNA
+    - Map microRNA data to a reference.
+    - Options:
+      -c <clean_fasta_file> Path to the clean FASTA file.
+      -d <database>         Path to the database directory.
+      -n <database_name>    Name of the miRNA database.
+      -o <output_folder>    Output folder including (filter score results about mapping hairpin database and analysis csv about percentage of mapping)
+
+  integrate
+    - Integrate species and miRNA data sets mapping results.
+    - Options:
+      -s <species_file>      Path to the top species mapping score file.
+      -m <mirna_file>        Path to the miRNA mapping score file.
+      -o <output_folder>     Output folder including (analysis csv about how many seqid, percentage for overlapping)
+
+  predict
+    - Run predictive models on genomic data.
+    - Options:
+      -w <models>                choose model you wanna predict: mirdeep2, linearfold or both
+      -r <raw_data>              Path to the raw genomic data.
+      -c <clean_fasta_file>      Path to the clean FASTA file.
+      -m <mapping_filter_score>  Path to the mapping filter score file.
+      -f <fna_file>              Path to the FNA file.
+      -n <database_name>         Name of the used database.
+      -o <output_folder>         Output folder including (predictive results) 
+
+  all
+    - Execute all available processes sequentially.
+
+Generic Options:
+  -h  Display this help message
+
+Examples:
+    $0 -p extract -r ../../input/test_data1.fastq -o ../../output/extract
+    $0 -p detect_species -c ../../output/extract/final_seq12.fasta -o ../../output/detect_species
+    $0 -p map_genome -f ../../output/detect_species/combined_gcf.fna -c ../../output/extract/final_seq12.fa -d ../../output/map_genome/top_species_database -n species  -o ../../output/map_genome
+    $0 -p map_mirna -f ../../database/microRNA_fa_database/hairpin.fa -c ../../output/extract/final_seq12.fa -d ../../output/map_mirna/hairpin_database -n hairpin  -o ../../output/map_mirna
+    $0 -p integrate -s ../../output/map_genome -m ../../output/map_mirna -o ../../output/integrate
+    $0 -p quantify -g ../../output/detect_species -m ../../output/map_genome/blast_score_filter.txt -u ../../output/extract/final_umi.fastq -o ../../output/quantify
+    $0 -p predict -w mirdeep2 -r ../../input/test_data1.fastq  -c ../../output/extract/final_seq12.fasta -m ../../output/map_genome/blast_score_filter.txt -f ../../output/detect_species/combined_gcf.fna -n mirdeep2 -o ../../output/predict_mirdeep
+    $0 -p predict -w linearfold  -c ../../output/extract/final_seq12.fasta -m ../../output/map_genome/blast_score_filter.txt  -f ../../output/detect_species/combined_gcf.fna  -o ../../output/predict_linearfold
+    $0 -p predict -w both -r ../../input/test_data1.fastq  -c ../../output/extract/final_seq12.fasta -m ../../output/map_genome/blast_score_filter.txt -f ../../output/detect_species/combined_gcf.fna -n both -o ../../output/predict_mirdeep
 EOF
     exit 1
 }
+#   $0 -p extract -f /path/to/rawdata.txt -o /path/to/output
+#   $0 -p map_genome -f /path/to/genome.fna -c /path/cleaned.fasta -n dbname -o /path/to/output
 
-# Initialize variables
-program=""
-declare -A opts
 
-# Parse command line options
-while getopts ":p:f:o:c:n:g:u:d:m:r:s:h" opt; do
-    case "$opt" in
-        p) program=$OPTARG ;;
-        f) opts[f]=$OPTARG ;;
-        o) opts[o]=$OPTARG ;;
-        c) opts[c]=$OPTARG ;;
-        n) opts[n]=$OPTARG ;;
-        g) opts[g]=$OPTARG ;;
-        u) opts[u]=$OPTARG ;;
-        d) opts[d]=$OPTARG ;;
-        m) opts[m]=$OPTARG ;;
-        r) opts[r]=$OPTARG ;;
-        s) opts[s]=$OPTARG ;;
-        h) usage ;;
-    esac
-done
-
-# Verify and set parameters based on program
+# Verify and set parameters
 check_params() {
     local required=("$@")
     for param in "${required[@]}"; do
@@ -68,7 +122,7 @@ check_params() {
 check_create_dir() {
     local dir="$1"
     local current_path=""
-    IFS='/' read -r -a path_parts <<< "$dir"
+    IFS='/' read -r -a path_parts <<<"$dir"
     for part in "${path_parts[@]}"; do
         if [[ -z "$current_path" ]]; then
             current_path="$part"
@@ -99,120 +153,174 @@ check_create_log_dir() {
     log_message "Log files initialized at ${timestamp}."
 }
 
+run_script() {
+    local script_path="$1"
+    echo "$script_path"
+    shift
+    local script_name
+    script_name=$(basename "$script_path")
 
-# Switch case to handle each program
-case "$program" in
-    extract)
-        check_params r o
-        check_create_log_dir "${opts[o]}/log_folder" "$program"
-        check_create_dir "${opts[o]}/middle_results"
-        log_message "Starting extract step."
-        if [[ -x "${DIR}/run.sh" ]]; then
-            "${DIR}/run.sh" "$(readlink -f "${opts[r]}")" "$(readlink -f "${opts[o]}")" "${PARENT_DIR}/python/cleaning" >> "$OUT_LOG" 2>> "$ERROR_LOG"
-        else
-            echo "Error: ${DIR}/run.sh does not exist or is not executable." >&2
-            exit 1
+    log_message "Starting ${script_name} step."
+    if [[ -x "$script_path" ]]; then
+        "$script_path" "$@" >>"$OUT_LOG" 2>>"$ERROR_LOG"
+        if [[ $? -ne 0 ]]; then
+            echo "Error: ${script_name} encountered an error." >&2
+            return 1
         fi
-        log_message "Completed extract step."
-        ;;
+    else
+        echo "Error: ${script_path} does not exist or is not executable." >&2
+        return 1
+    fi
+    log_message "Completed ${script_name} step."
+}
 
-    detect_species)
-        check_params c o
-        check_create_log_dir "${opts[o]}/log_folder" "$program"
-        check_create_dir "${opts[o]}/middle_results"
-        log_message "Starting extract step."
-        if [[ -x "${DIR}/species_detection.sh" ]]; then
-            echo "${DATABASE_DIR}/database/blast_refprok_database"
-            "${DIR}/species_detection.sh" "$(readlink -f "${opts[c]}")" "$(readlink -f "${opts[o]}")" "${RELEASE_DIR}/database/blast_refprok_database" "${PARENT_DIR}/python/after_cleaning">> "$OUT_LOG" 2>> "$ERROR_LOG"
+abs_path() {
+    local path
+    local abs_paths
+    for path in "$@"; do
+        if [[ -e "$path" ]]; then
+            local abs
+            abs=$(readlink -f "$path")
+            if [[ $? -ne 0 ]]; then
+                echo "Error: Failed to resolve absolute path for $path" >&2
+                return 1
+            fi
+            abs_paths+="$abs " 
         else
-            echo "Error: ${DIR}/species_detection.sh does not exist or is not executable." >&2
-            exit 1
+            echo "Error: Path does not exist - $path" >&2
+            return 1
         fi
-        log_message "Completed detect_species step."
-        ;;
-        
-    map_genome)
-        check_params f c d n o
-        check_create_log_dir "${opts[o]}/log_folder"
-        check_create_dir "${opts[d]}"
-        log_message "Starting map_genome step."
-        if [[ -x "${DIR}/genome_mapping.sh" ]]; then
-            # echo "${DIR}/genome_mapping.sh"
-            # echo "$(readlink -f "${opts[f]}")"  
-            # echo "$(readlink -f "${opts[c]}")"  
-            # echo "$(readlink -f "${opts[d]}")"  
-            # echo "${opts[n]}" 
-            # echo "$(readlink -f "${opts[o]}")"
-            "${DIR}/genome_mapping.sh" "$(readlink -f "${opts[f]}")"  "$(readlink -f "${opts[c]}")"  "$(readlink -f "${opts[d]}")"  "${opts[n]}" "$(readlink -f "${opts[o]}")" >> "$OUT_LOG" 2>> "$ERROR_LOG"
-        else
-            echo "Error: ${DIR}/genome_mapping.sh does not exist or is not executable." >&2
-            exit 1
-        fi
-        log_message "Completed map_genome step."
-        ;;
-        
-    quantify)
-        check_params g m u o
-        check_create_log_dir "${opts[o]}/log_folder"
-        check_create_dir "${opts[o]}/middle_results"
-        log_message "Starting quantify step."
-        if [[ -x "${DIR}/function_quantification.sh" ]]; then
-            "${DIR}/function_quantification.sh" "$(readlink -f "${opts[g]}")" "$(readlink -f "${opts[m]}")" "$(readlink -f "${opts[u]}")" "$(readlink -f "${opts[o]}")" "${PARENT_DIR}/python/after_cleaning" >> "$OUT_LOG" 2>> "$ERROR_LOG"
-        else
-            echo "Error: ${DIR}/function_quantification.sh does not exist or is not executable." >&2
-            exit 1
-        fi
-        log_message "Completed quantify step."
-        ;;
-        
-    map_mirna)
-        check_params f c d n o
-        check_create_log_dir "${opts[o]}/log_folder"
-        check_create_dir "${opts[d]}"
-        log_message "Starting map_miRNA step."
-        if [[ -x "${DIR}/map_microrna.sh" ]]; then
-            "${DIR}/map_microrna.sh" "$(readlink -f "${opts[f]}")"  "$(readlink -f "${opts[c]}")"  "$(readlink -f "${opts[d]}")"  "${opts[n]}"  "${PARENT_DIR}/python/after_cleaning" "$(readlink -f "${opts[o]}")" >> "$OUT_LOG" 2>> "$ERROR_LOG"
-        else
-            echo "Error: ${DIR}/map_microrna.sh does not exist or is not executable." >&2
-            exit 1
-        fi
-        log_message "Completed map_miRNA step."
-        ;;
-        
-    integrate)
-        check_params s m o
-        check_create_log_dir "${opts[o]}/log_folder"
-        log_message "Starting integrate step."
-        if [[ -x "${DIR}/integration.sh" ]]; then
-            "${DIR}/integration.sh" "$(readlink -f "${opts[s]}")" "$(readlink -f "${opts[m]}")" "${PARENT_DIR}/python/after_cleaning" "$(readlink -f "${opts[o]}")" >> "$OUT_LOG" 2>> "$ERROR_LOG"
-        else
-            echo "Error: ${DIR}/integration.sh does not exist or is not executable." >&2
-            exit 1
-        fi
-        log_message "Completed integrate step."
-        ;;
-        
-    predict)
-        check_params r c m f n o
-        check_create_log_dir "${opts[o]}/log_folder"
-        check_create_dir "${opts[o]}/middle_results"
-        log_message "Starting predict steps simultaneously."
-        "${DIR}/run_mirdeep2.sh" "${opts[c]}" "${opts[m]}" "${opts[f]}" "${opts[n]}" "${PARENT_DIR}/code/python/after_cleaning" "${opts[o]}/middle_results" "${opts[o]}" >> "$OUT_LOG" 2>> "$ERR_LOG" &
-        mirdeep2_pid=$!
-        "${DIR}/run_linearfold.sh" "${opts[c]}" "${opts[m]}" "${PARENT_DIR}/code/python/after_cleaning" "${opts[o]}/middle_results" "${opts[o]}" >> "$OUT_LOG" 2>> "$ERR_LOG" &
-        linearfold_pid=$!
-        wait $mirdeep2_pid
-        wait $linearfold_pid
-        log_message "Completed predict steps."
-        ;;
-        
-    all)
-        log_message "Running all processes."
-        # Implement calls to all functions here
-        ;;
-        
-    *)
-        log_error "Unknown command: '$program'."
-        usage
-        ;;
-esac
+    done
+    echo "${abs_paths% }"
+    # echo "${abs_paths}"
+}
+
+main() {
+    # Initialize variables
+    local program
+    declare -A opts
+
+    # program=""
+    # declare -A opts
+
+    # Parse command line options
+    while getopts ":p:f:o:c:n:g:u:d:m:r:s:w:h" opt; do
+        case "$opt" in
+            p) program=$OPTARG ;;
+            f) opts[f]=$OPTARG ;;
+            o) opts[o]=$OPTARG ;;
+            c) opts[c]=$OPTARG ;;
+            n) opts[n]=$OPTARG ;;
+            g) opts[g]=$OPTARG ;;
+            u) opts[u]=$OPTARG ;;
+            d) opts[d]=$OPTARG ;;
+            m) opts[m]=$OPTARG ;;
+            r) opts[r]=$OPTARG ;;
+            s) opts[s]=$OPTARG ;;
+            w) opts[w]=$OPTARG ;;
+            h) usage ;;
+                \?) log_error "Invalid option: -$OPTARG"; usage ;;
+                :) log_error "Option -$OPTARG requires an argument."; usage ;;
+        esac
+    done
+
+    # Switch case to handle each function
+    check_create_log_dir "${opts[o]}/log_folder" "$program"
+    local cleaning_code_path=${PARENT_DIR}/python/cleaning
+    local after_cleaning_code_path=${PARENT_DIR}/python/after_cleaning
+    local refprok_database=${RELEASE_DIR}/database/blast_refprok_database
+
+    case "$program" in
+        extract)
+            check_params r o
+            check_create_dir "${opts[o]}/middle_results"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[r]}" "${opts[o]}")"
+            run_script "${DIR}/run.sh" "$cleaning_code_path" "${paths[@]}"
+            ;;
+
+        detect_species)
+            check_params c o
+            check_create_dir "${opts[o]}/middle_results"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[o]}")"
+            run_script "${DIR}/species_detection.sh" "$refprok_database" "$after_cleaning_code_path" "${paths[@]}"
+            ;;
+
+        map_genome)
+            check_params f c d n o
+            check_create_dir "${opts[d]}"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[f]}" "${opts[c]}" "${opts[d]}" "${opts[o]}")"
+            run_script "${DIR}/map_genome.sh" "${opts[n]}" "${paths[@]}"
+            ;;
+
+        quantify)
+            check_params g m u o
+            check_create_dir "${opts[o]}/middle_results"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[g]}" "${opts[m]}" "${opts[u]}" "${opts[o]}")"
+            run_script "${DIR}/function_quantification.sh" "$after_cleaning_code_path" "${paths[@]}"
+
+            ;;
+
+        map_mirna)
+            check_params f c d n o
+            check_create_dir "${opts[d]}"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[f]}" "${opts[c]}" "${opts[d]}" "${opts[o]}")"
+            run_script "${DIR}/map_microrna.sh" "${opts[n]}" "$after_cleaning_code_path" "${paths[@]}" 
+
+            ;;
+
+        integrate)
+            check_params s m o
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[s]}" "${opts[m]}" "${opts[o]}")"
+            run_script "${DIR}/integration.sh"  "$after_cleaning_code_path" "${paths[@]}" 
+            ;;
+
+        predict)
+            check_params w
+            check_create_dir "${opts[o]}/middle_results"
+            
+            run_mirdeep2() {
+                check_params r c m f n o
+                IFS=' ' read -r -a paths <<< "$(abs_path "${opts[r]}" "${opts[c]}" "${opts[m]}" "${opts[f]}""${opts[o]}")"
+                run_script "${DIR}/run_mirdeep2.sh" "${opts[n]}" "$after_cleaning_code_path" "${paths[@]}" 
+            }
+
+            run_linearfold() {
+                check_params c m f o
+                IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[m]}" "${opts[f]}" "${opts[o]}")"
+                run_script "${DIR}/run_linearfold.sh"  "$after_cleaning_code_path" "${paths[@]}" 
+            }
+
+            model=${opts[w]}
+            case "$model" in
+                mirdeep2)
+                    run_mirdeep2
+                    ;;
+                linearfold)
+                    run_linearfold
+                    ;;
+                both)
+                    log_message "Starting predict steps sequentially."
+                    run_mirdeep2
+                    run_linearfold
+                    log_message "Completed all predict steps."
+                    ;;
+                *)
+                    printf "Error: Invalid value for choosing models parameter: %s\n" "$model" >&2
+                    return 1
+                    ;;
+            esac
+            ;;
+
+        all)
+            log_message "Running all processes."
+            # Implement calls to all functions here
+            ;;
+
+        *)
+            log_error "Unknown command: '$program'."
+            usage
+            ;;
+    esac
+}
+
+main "$@"

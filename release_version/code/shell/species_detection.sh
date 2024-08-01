@@ -2,10 +2,10 @@
 # Exit immediately if any command fails
 set -e
 
-clean_fasta=$1
-results=$2
-refprok_database=$3
-code_path=$4
+refprok_database=$1
+code_path=$2
+clean_fasta=$3
+results=$4
 temp_folder=$results/middle_results/temp
 blast_refprok_mapping_fna=$temp_folder/ncbi_dataset_fna/ncbi_dataset/data
 # echo "$results"

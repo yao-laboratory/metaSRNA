@@ -1,10 +1,10 @@
 #!/bin/bash
 
-gtf_folder=$1
-filter_score_file=$2
-umi_file=$3
-results=$4
-code_path=$5
+code_path=$1
+gtf_folder=$2
+filter_score_file=$3
+umi_file=$4
+results=$5
 
 # grep -v '^#' ${gtf_folder}/GCF_000238075.gtf > ${gtf_folder}/refine.gtf
 python3 ${code_path}/blast_process_main.py add_gene -input_gcf ${gtf_folder}/refine.gtf -input_score $filter_score_file -output_csv ${results}/middle_results/blast_score_filter_add_gene.csv

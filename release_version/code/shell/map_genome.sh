@@ -1,9 +1,9 @@
 #!/bin/bash
 
-blast_fna=$1
-clean_fa=$2
-database=$3
-database_name=$4
+database_name=$1
+blast_fna=$2
+clean_fa=$3
+database=$4
 results=$5
 
 module load blast/2.14

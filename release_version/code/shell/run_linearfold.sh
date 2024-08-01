@@ -5,11 +5,13 @@ conda activate cleanfasq_env
 # Exit immediately if any command fails
 set -e
 
-clean_fasta_file=$1
-mapping_filter_score_species_file=$2
-code_path=$3
-middle_results=$4
+code_path=$1
+clean_fasta_file=$2
+mapping_filter_score_species_file=$3
+fna_file=$4
 results=$5
+middle_results=$results/middle_results
+
 echo $(date)
 python3 $code_path/blast_process_main.py extract_sequences_from_genome -input_blast_result $mapping_filter_score_species_file -input_genome $fna_file  -output_fasta ${middle_results}/predict_use.fasta
 echo $(date)

@@ -5,11 +5,11 @@ module load biodata/1.0
 module load allinea
 module load seqtk
 
-fa_file=$1
-clean_fasta_file=$2
-database=$3
-database_name=$4
-code_path=$5
+database_name=$1
+code_path=$2
+fa_file=$3
+clean_fasta_file=$4
+database=$5
 results=$6
 # Be sure to use a directory under $WORK for your job
 
