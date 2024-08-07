@@ -9,6 +9,7 @@ EXTRA_RIGHT_GAP = 40
 def extract_sequences_from_genome(input_blast_result, input_genome, output_fasta):
     # input_blast_result = '../../../mytuber/results/SRR20723831/blast_result/blastn_mapping_SRR20723831_test.txt'
     df_blast_score = pd.read_csv(input_blast_result, sep=',')
+    df_blast_score.columns = ["qseqid", "sacc", "sstart", "send", "evalue", "bitscore", "qcovhsp", "pident"]
     # Initialize an empty DataFrame to store the results
     result_df = pd.DataFrame(columns=df_blast_score.columns)
 

@@ -1,0 +1,9 @@
+**/__pycache__/
+**/results/*
+**/shared/*
+**/*.slurm
+**/database/*
+**/input/*
+**/output/*
+**/log/*
+**/*.ipynb

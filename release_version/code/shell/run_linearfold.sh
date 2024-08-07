@@ -17,7 +17,7 @@ python3 $code_path/blast_process_main.py extract_sequences_from_genome -input_bl
 echo $(date)
 
 echo $(date)
-cat ${middle_results}/predict_use.fasta | $linearfold_folder/./linearfold --fasta --Vienna --verbose | grep 'index\|Hairpin\|\.\.' > ${middle_results}/predict_final
+cat ${middle_results}/predict_use.fasta | linearfold --fasta --Vienna --verbose | grep 'index\|Hairpin\|\.\.' > ${middle_results}/predict_final
 echo $(date)
 
 # ### start linear fold result analysis
@@ -26,5 +26,5 @@ echo $(date)
 # export PARAM3=$results/blast_result/blastn_filter_${sample_id}_shorter_after_filter.csv
 # export PARAM4=$results/predict_result/${sample_id}_hairpin_information.csv
 echo $(date)
-python3 $final_linear_fold_result ${middle_results}/predict_final $clean_fasta_file $mapping_filter_score_species_file ${results}/hairpin_information.csv
+python3 $code_path/final_linear_fold_result.py -input_linearfold_result ${middle_results}/predict_final -input_reads $clean_fasta_file -csv_file $mapping_filter_score_species_file -output_file ${results}/hairpin_information.csv
 echo $(date)

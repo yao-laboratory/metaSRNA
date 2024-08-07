@@ -1,9 +1,0 @@
-**/__pycache__/
-**/results/*
-**/shared/*
-**/*.slurm
-**/release_version/database/*
-**/release_version/input/*
-**/release_version/output/*
-**/log/*
-**/*.ipynb

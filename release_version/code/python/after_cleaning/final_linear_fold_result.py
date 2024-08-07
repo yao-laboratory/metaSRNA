@@ -4,6 +4,8 @@ import pandas as pd
 import os
 import numpy as np
 from Bio import SeqIO
+import argparse
+import sys
 
 EXTRA_LEFT_GAP = 40
 EXTRA_RIGHT_GAP = 40
@@ -20,14 +22,14 @@ def extract_hairpin_loops(input_linearfold_result, input_reads, csv_file, output
     with open(input_linearfold_result, 'r') as file:
         file_contents = file.read()
     # print(file_contents)
-    pattern = re.compile(r'>(\d+) index_(\d+)\n(.*?)(?=>|$)', re.DOTALL)
+    seq_pattern = re.compile(r'>(\d+) index_(\d+)\n(.*?)(?=>|$)', re.DOTALL)
 
-    for index, match in enumerate(pattern.finditer(file_contents)):
+    for index, match in enumerate(seq_pattern.finditer(file_contents)):
         # print(f'working on match: {match.group(0)}...')
         df.at[index, 'qseqid'] = int(match.group(1))
         df.at[index, 'id'] = int(match.group(2))
 
-    # matches = pattern.findall(file_contents)
+    # matches = seq_pattern.findall(file_contents)
     # # print(matches)
 
     # #step1. store all the seqid and index in hairpin predict file to df
@@ -37,6 +39,7 @@ def extract_hairpin_loops(input_linearfold_result, input_reads, csv_file, output
     print("step1 finished")
     #step2. read csv file
     df_csv = pd.read_csv(csv_file, sep=",")
+    df_csv.columns = ["qseqid", "sacc", "sstart", "send", "evalue", "bitscore", "qcovhsp", "pident"]
     #Calculate the fasta length column
     df_csv['length'] = abs(df_csv['send'] - df_csv['sstart']) + 1
     df_subset_csv = df_csv[['qseqid', 'length']]
@@ -56,26 +59,15 @@ def extract_hairpin_loops(input_linearfold_result, input_reads, csv_file, output
     print("step3 finished")
     #step4. add other data in predict haripin file which needs len information
     flag = False
-    hairpin_pattern = re.compile(r'Hairpin loop.*?(\d+),\s*(\d+)\).*?:\s*([\d.]+)', re.DOTALL)
-    for index, match in enumerate(pattern.finditer(file_contents)):
-        # # protection code: make sure the sequence in original fasta is the sequence in the predict file
-        # if index + 1 > len(df):
-        #     print(f"No match found in original fasta file")
-        #     break
-        # # if df_add_len_and_seq.at[index, 'qseqid']  and  df_add_len_and_seq.at[index, 'id']:
-        # if int(match[0]) == df_add_len_and_seq.at[index, 'qseqid'] and int(match[1]) == df_add_len_and_seq.at[index, 'id']:
-        # # # protection code end
-        # print(match[0])
+    for index, match in enumerate(seq_pattern.finditer(file_contents)):
+        verbose_section = match.group(3)
+        hairpin_pattern = re.compile(r'Hairpin loop.*?(\d+),\s*(\d+)\).*?:\s*([\d.]+)', re.DOTALL)
         target_length = df_add_len_and_seq.at[index, 'length']
-        # df.at[index, 'qseqid'] = int(match[0])
-        # df.at[index, 'id'] = int(match[1])
-        verbose_section = match[2]
-        # Check if 'Hairpin loop' is in the verbose section
         if 'Hairpin loop' in verbose_section:
             # first find hairpin information (find start end value)
             hairpin_match = hairpin_pattern.findall(verbose_section)
-            # print(hairpin_match)
             if hairpin_match:
+                print(hairpin_match)
                 # for match in hairpin_match:
                 df_add_len_and_seq.at[index, 'start'] = '|'.join(
                     str(match[0]) for match in hairpin_match)
@@ -84,11 +76,6 @@ def extract_hairpin_loops(input_linearfold_result, input_reads, csv_file, output
                 df_add_len_and_seq.at[index, 'dis'] = '|'.join(str((lambda start, end: -(EXTRA_LEFT_GAP + 1 - end) if end < (EXTRA_LEFT_GAP + 1)
                                                     else start - (EXTRA_LEFT_GAP + target_length) if start > (EXTRA_LEFT_GAP + target_length)
                                                     else int(0))(int(match[0]), int(match[1]))) for match in hairpin_match)
-            # else:
-            #     df_add_len_and_seq.at[index, 'start'] = np.nan
-            #     df_add_len_and_seq.at[index, 'end'] = np.nan
-            #     df_add_len_and_seq.at[index, 'dis'] = np.nan
-        # next find structure information(last line in verbose)
         lines = verbose_section.strip().split('\n')
         # print(lines)
         structure = lines[-1]
@@ -107,21 +94,33 @@ def extract_hairpin_loops(input_linearfold_result, input_reads, csv_file, output
         flag = True
         # else:
         #     print(f"No match found at index : {df_add_len_and_seq.at[index, 'id']}")
-   
 
-def main(input_linearfold_result, input_reads, csv_file, output_file):
-    # Check if the output file exists, delete first
-    if os.path.exists(output_file):
-        os.remove(output_file)
-        print(f"{output_file} has been deleted.")
-    else:
-        print(f"{output_file} does not exist.")
-    extract_hairpin_loops(input_linearfold_result, input_reads, csv_file, output_file)
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description=" produce hairpin information csv file")
+    parser.add_argument('-input_linearfold_result', required=True,
+                        type=str, help='linearfold output path', default="none")
+    parser.add_argument('-input_reads', required=True,
+                        type=str, help='after clean fasta file', default="none")
+    parser.add_argument('-csv_file', required=True,
+                        type=str, help='mapping species database csv path', default="none")
+    parser.add_argument('-output_file', required=True,
+                        type=str, help='output file path', default="none")
+    return parser.parse_args()
+
+
+def main():
+    args = parse_arguments()
+    if os.path.exists(args.output_file):
+        os.remove(args.output_file)
+
+    if args.input_linearfold_result and args.input_reads and args.csv_file and args.output_file:
+        # time_start_s = time.time()
+        extract_hairpin_loops(args.input_linearfold_result, args.input_reads, args.csv_file, args.output_file)
+        # time_end_s = time.time()
+        # time_c = time_end_s - time_start_s
+        # print('time cost', time_c, 's')
+
 
 if __name__ == "__main__":
-    input_linearfold_result = os.getenv('PARAM1', 'default_value1')
-    input_reads = os.getenv('PARAM2', 'default_value2')
-    csv_file = os.getenv('PARAM3', 'default_value3')
-    output_file = os.getenv('PARAM4', 'default_value4')
-    main(input_linearfold_result, input_reads, csv_file, output_file)
-    print("finished producing hairpin information csv file.")
+    main()
