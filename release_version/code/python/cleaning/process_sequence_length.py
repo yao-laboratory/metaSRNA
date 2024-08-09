@@ -3,7 +3,7 @@ import time
 
 def process_length(input_file, output_folder, length):
     # f = 'output.fastq'
-    output1_1 = output_folder + "/final_seq"+ str(length) +".fastq"
+    output1_1 = output_folder + "/final_seq_"+ str(length) +".fastq"
 
     with open(input_file, 'r') as file, open(output1_1, 'w') as output_file1_1:
         # Read the first line

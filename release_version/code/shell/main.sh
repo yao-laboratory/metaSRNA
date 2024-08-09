@@ -32,8 +32,13 @@ Programs and their Required Options:
   extract
     - Extract data from raw input files.
     - Options:
-      -r <raw_data>         Path to the raw data file.
-      -o <output_folder>    Output folder including (clean fasta file and corresponding umi file)
+      -r <raw_data>                      Path to the raw data file.
+      -l <filter_minimum_length>         raw data fitering minimum length condition
+      -o <output_folder>                 Output folder including (clean fasta file and corresponding umi file)
+      -F <clean_format>                  Flexible cleaning code pattern
+      -t1 <fault_torlerance>             how many bits for the pattern not correct
+      -t2 <tail_incomplete_tolerance>    how many incomplete bits for the pattern tail
+
 
   detect_species
     - Detect Top nth species in clean fasta data.
@@ -202,12 +207,15 @@ main() {
 
     # program=""
     # declare -A opts
-
-    # Parse command line options
-    while getopts ":p:f:o:c:n:g:u:d:m:r:s:w:h" opt; do
+    format=""
+    fault_tl=""
+    incomplete_tl=""
+    # Parse command line options (with)
+    while getopts ":p:f:l:o:c:n:g:u:d:m:r:s:w:F:h-:" opt; do
         case "$opt" in
             p) program=$OPTARG ;;
             f) opts[f]=$OPTARG ;;
+            l) opts[l]=$OPTARG ;;
             o) opts[o]=$OPTARG ;;
             c) opts[c]=$OPTARG ;;
             n) opts[n]=$OPTARG ;;
@@ -218,11 +226,19 @@ main() {
             r) opts[r]=$OPTARG ;;
             s) opts[s]=$OPTARG ;;
             w) opts[w]=$OPTARG ;;
+            F) opts[F]=$OPTARG ;;
+            -)
+                case "${OPTARG}" in
+                    t1) opts[t1]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    t2) opts[t2]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    *) log_error "Invalid option: --$OPTARG"; usage; exit 1 ;;
+                esac ;;
             h) usage ;;
-                \?) log_error "Invalid option: -$OPTARG"; usage ;;
-                :) log_error "Option -$OPTARG requires an argument."; usage ;;
+            \?) log_error "Invalid option: -$OPTARG"; usage ;;
+            :) log_error "Option -$OPTARG requires an argument."; usage ;;
         esac
     done
+
 
     # Switch case to handle each function
     check_create_log_dir "${opts[o]}/log_folder" "$program"
@@ -232,10 +248,10 @@ main() {
 
     case "$program" in
         extract)
-            check_params r o
+            check_params r l o F t1 t2
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[r]}" "${opts[o]}")"
-            run_script "${DIR}/run.sh" "$cleaning_code_path" "${paths[@]}"
+            run_script "${DIR}/run.sh" "$cleaning_code_path" "${opts[l]}" "${opts[F]}" "${opts[t1]}" "${opts[t2]}" "${paths[@]}"
             ;;
 
         detect_species)
@@ -277,10 +293,11 @@ main() {
         predict)
             check_params w
             check_create_dir "${opts[o]}/middle_results"
+            check_create_dir "${opts[o]}/middle_results/database"
             
             run_mirdeep2() {
-                check_params r c m f n o
-                IFS=' ' read -r -a paths <<< "$(abs_path "${opts[r]}" "${opts[c]}" "${opts[m]}" "${opts[f]}""${opts[o]}")"
+                check_params c m f n o
+                IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[m]}" "${opts[f]}" "${opts[o]}")"
                 run_script "${DIR}/run_mirdeep2.sh" "${opts[n]}" "$after_cleaning_code_path" "${paths[@]}" 
             }
 
