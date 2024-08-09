@@ -2,35 +2,59 @@
 # Exit immediately if any command fails
 set -e
 
-datbase_name=$1
-code_path=$2
-raw_data=$3
-clean_fasta_file=$4
-mapping_filter_score_species_file=$5
-fna_file=$6
-results=$7
+# Function to delete file if it exists
+delete_file_if_exists() {
+    local file_path="$1"
+    if [[ -f "$file_path" ]]; then
+        rm -f "$file_path"
+    fi
+}
 
-### need cd to the folder which will let all the running file to this folder
-cd $clean_fastaq/shared/code/after_cleaning
-set -e
-# export PARAM1=$results/blast_result/${sample_id}_seq12_unique_sequences.fasta
-# export PARAM2=$results/blast_result/blastn_filter_${sample_id}_shorter_after_filter.csv
-# export PARAM3=$bowtie_mirdeep_result/reads.fa
+update_combined_fna_format() {
+    local input_file="$1"
+    local temp_file="${input_file}.tmp"
+    local header=">chr_default_combined:1-99999"
+
+    if [[ -f "$input_file" ]]; then
+        grep -v '^>' "$input_file" > "$temp_file"
+        printf "%s\n" "$header" | cat - "$temp_file" > "$input_file"
+        rm -f "$temp_file"
+    else
+        printf "Error: File %s not found\n" "$input_file" >&2
+        return 1
+    fi
+}
+
+database_name=$1
+code_path=$2
+clean_fasta_file=$3
+mapping_filter_score_species_file=$4
+fna_file=$5
+results=$6
+
+./main.sh -p extract -r ../../input/test_data1.fastq -o ../../output/extract -l 17 -F *TGGAATTCTCGGGTGCCAAGGAACTCCA* -t1 2 -t2 4
+
 echo "start"
 echo $(date)
-python3 ${code_path}/prepare_mirdeep_reads_file.py $clean_fasta_file $mapping_filter_score_species_file $$raw_data
+## nead filter original reads only match species part
+python3 ${code_path}/prepare_mirdeep_reads_file.py -input_reads $clean_fasta_file -csv_file $mapping_filter_score_species_file -output_file $results/middle_results/reads.fa
 echo $(date)
 
-###start
-cp $fna_file ${middle_results}/fna_file.fa
-cp $raw_data ${middle_results}/reads.fa
-mkdir -p ${middle_results}/database
+## start mirdeep2 preparation
+# delete_file=$results/middle_results/reads_collapsed_vs_genome.arf
+delete_file_if_exists "$results/middle_results/reads_collapsed_vs_genome.arf"
+cp $fna_file $results/middle_results/fna_file.fa
+update_combined_fna_format "$results/middle_results/fna_file.fa"
 
-cd $bowtie_mirdeep_result
+cd $results
+## mkdir -p $results/middle_results/database
+
+## bowtie to generate database
 module load bowtie/1.3
-module load miRDeep/2.0
-bowtie-build ${middle_results}/fna_file.fa ${middle_results}/database/${database_name}
-collapse_reads_md.pl ${middle_results}/reads.fa mmu > $middle_results/reads_collapsed.fa
-mapper.pl $middle_results/reads_collapsed.fa -c -p ${middle_results}/database/${database_name} -t $middle_results/reads_collapsed_vs_genome.arf
-miRDeep2.pl $middle_results/reads_collapsed.fa ${middle_results}/fna_file.fa $middle_results/reads_collapsed_vs_genome.arf none none none 2>$results/report.log
-###end
+bowtie-build $results/middle_results/fna_file.fa $results/middle_results/database/${database_name}
+
+## start mirdeep2
+collapse_reads_md.pl $results/middle_results/reads.fa mmu > $results/middle_results/reads_collapsed.fa
+mapper.pl $results/middle_results/reads_collapsed.fa -c -p $results/middle_results/database/${database_name} -t $results/middle_results/reads_collapsed_vs_genome.arf
+miRDeep2.pl $results/middle_results/reads_collapsed.fa $results/middle_results/fna_file.fa $results/middle_results/reads_collapsed_vs_genome.arf none none none 2>$results/report.log
+## end
