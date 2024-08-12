@@ -1,4 +1,6 @@
 #!/bin/bash
+# Exit immediately if any command fails
+set -e
 
 code_path=$1
 gtf_folder=$2

@@ -56,21 +56,28 @@ Programs and their Required Options:
       -n <database_name>     Name of the species combine database.
       -o <output_folder>     Output folder including (filter score results about mapping top species database and analysis csv about percentage of mapping)
 
-  quantify
-    - Quantify the analysis results based on mapped data.
+  quantify_genome
+    - Quantify the analysis results based on genome mapped data.
     - Options:
       -g <gtf_file>            Path to the GTF file.
       -m <mapping_filter_file> Path to the mapping filter score file.
       -u <umi_file>            Path to the UMI file.
       -o <output_folder>       Output folder including (quantified csv files)
 
-  map_miRNA
+  map_mirna
     - Map microRNA data to a reference.
     - Options:
       -c <clean_fasta_file> Path to the clean FASTA file.
       -d <database>         Path to the database directory.
       -n <database_name>    Name of the miRNA database.
       -o <output_folder>    Output folder including (filter score results about mapping hairpin database and analysis csv about percentage of mapping)
+
+  quantify_mirna
+    - Quantify the analysis results based on miRNA mapped data.
+    - Options:
+      -m <mapping_filter_file> Path to the mapping filter score file.
+      -u <umi_file>            Path to the UMI file.
+      -o <output_folder>       Output folder including (quantified csv files)
 
   integrate
     - Integrate species and miRNA data sets mapping results.
@@ -265,11 +272,11 @@ main() {
             run_script "${DIR}/map_genome.sh" "${opts[n]}" "${paths[@]}"
             ;;
 
-        quantify)
+        quantify_genome)
             check_params g m u o
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[g]}" "${opts[m]}" "${opts[u]}" "${opts[o]}")"
-            run_script "${DIR}/function_quantification.sh" "$after_cleaning_code_path" "${paths[@]}"
+            run_script "${DIR}/species_function_quantification.sh" "$after_cleaning_code_path" "${paths[@]}"
 
             ;;
 
@@ -281,6 +288,13 @@ main() {
 
             ;;
 
+        quantify_mirna)
+            check_params m u o
+            check_create_dir "${opts[o]}/middle_results"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[m]}" "${opts[u]}" "${opts[o]}")"
+            run_script "${DIR}/mirna_function_quantification.sh" "$after_cleaning_code_path" "${paths[@]}"
+
+            ;;
         integrate)
             check_params s m o
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[s]}" "${opts[m]}" "${opts[o]}")"
