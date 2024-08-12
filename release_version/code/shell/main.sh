@@ -44,6 +44,7 @@ Programs and their Required Options:
     - Detect Top nth species in clean fasta data.
     - Options:
       -c <clean_fasta_file> Path to the clean FASTA file.
+      -t <retain how many top mapping species> Retain the top <n> mapping species' sacc and gcf values.
       -o <output_folder>    Output folder including (combined fna and (combined?) gtf files)
 
   map_genome
@@ -205,13 +206,8 @@ main() {
     local program
     declare -A opts
 
-    # program=""
-    # declare -A opts
-    format=""
-    fault_tl=""
-    incomplete_tl=""
     # Parse command line options (with)
-    while getopts ":p:f:l:o:c:n:g:u:d:m:r:s:w:F:h-:" opt; do
+    while getopts ":p:f:l:o:c:n:g:u:d:m:r:s:t:w:F:h-:" opt; do
         case "$opt" in
             p) program=$OPTARG ;;
             f) opts[f]=$OPTARG ;;
@@ -225,6 +221,7 @@ main() {
             m) opts[m]=$OPTARG ;;
             r) opts[r]=$OPTARG ;;
             s) opts[s]=$OPTARG ;;
+            t) opts[t]=$OPTARG ;;
             w) opts[w]=$OPTARG ;;
             F) opts[F]=$OPTARG ;;
             -)
@@ -255,10 +252,10 @@ main() {
             ;;
 
         detect_species)
-            check_params c o
+            check_params c o t
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[o]}")"
-            run_script "${DIR}/species_detection.sh" "$refprok_database" "$after_cleaning_code_path" "${paths[@]}"
+            run_script "${DIR}/species_detection.sh" "$refprok_database" "$after_cleaning_code_path" "${opts[t]}" "${paths[@]}"
             ;;
 
         map_genome)
