@@ -20,17 +20,16 @@ def extract_sequences_from_genome(input_blast_result, input_genome, output_fasta
     for record in SeqIO.parse(input_genome, "fasta"):
         # Create a Seq object from the sequence data
         seq = Seq(record.seq)
+        # print(input_genome, len(seq))
     start_border = 1
     end_border = len(seq)
     print("part1 done")
     records = []
     with open(output_fasta, "w") as output_file:
         for index, row in df_blast_score.iterrows():
-            #print(index)
             seq_id = row['qseqid']
             start = int(row['sstart'])
             end = int(row['send'])
-            # print(start,end)
             # warning
             # if df_start_pos == df_end_pos:
             #     print("there is a problem!")

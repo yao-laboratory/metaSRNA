@@ -82,6 +82,7 @@ Programs and their Required Options:
   integrate
     - Integrate species and miRNA data sets mapping results.
     - Options:
+      -c <clean_fasta_file>  Path to the clean FASTA file.
       -s <species_file>      Path to the top species mapping score file.
       -m <mirna_file>        Path to the miRNA mapping score file.
       -o <output_folder>     Output folder including (analysis csv about how many seqid, percentage for overlapping)
@@ -296,9 +297,10 @@ main() {
 
             ;;
         integrate)
-            check_params s m o
-            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[s]}" "${opts[m]}" "${opts[o]}")"
-            run_script "${DIR}/integration.sh"  "$after_cleaning_code_path" "${paths[@]}" 
+            check_params c s m o
+            check_create_dir "${opts[o]}/middle_results"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[s]}" "${opts[m]}" "${opts[o]}")"
+            run_script "${DIR}/integration.sh" "$cleaning_code_path" "$after_cleaning_code_path" "${paths[@]}" 
             ;;
 
         predict)
