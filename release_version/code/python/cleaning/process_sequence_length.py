@@ -1,10 +1,10 @@
 import argparse
 import time
 
-def process_length(input_file, output_folder, length):
-    # f = 'output.fastq'
-    output1_1 = output_folder + "/final_seq_"+ str(length) +".fastq"
-
+def process_length(input_file, output_folder, minimum_length, maximum_length):
+    output1_1 = output_folder + "/final_seq_" + str(minimum_length) + (".fastq" if maximum_length == -1 else "_to_" + str(maximum_length) + ".fastq")
+    if maximum_length == -1:
+        maximum_length = float('inf')
     with open(input_file, 'r') as file, open(output1_1, 'w') as output_file1_1:
         # Read the first line
         #id1 = 1
@@ -27,7 +27,7 @@ def process_length(input_file, output_folder, length):
                 break
             if len(lines) == 4 and lines[2] == "+":
                 # new_string = lines[1].replace("\n", "")
-                if len(lines[1]) >= length:
+                if len(lines[1]) >= minimum_length and len(lines[1]) <= maximum_length:
                     #line1_w = '@' + str(id1) + '\n'
                     output_file1_1.write(lines[0]+"\n")
                     #id1 += 1
@@ -68,8 +68,10 @@ def main():
                            type=str, help='input file: fastq format', default="none")
     parser_c1.add_argument('-output_folder', required=True,
                            type=str, help='output file main name', default="none")
-    parser_c1.add_argument('-filter_length', required=True,
-                        type=str, help='>=length', default="none")
+    parser_c1.add_argument('-filter_min_length', required=True,
+                        type=int, help='minimum length requirement for reads file', default="none")
+    parser_c1.add_argument('-filter_max_length', required=False,
+                    type=int, help='maximum length requirement for reads file', default=-1)
 
     # add sub command
     parser_c2 = subparsers.add_parser("remove_duplicates",
@@ -83,11 +85,10 @@ def main():
     if args.subcommand == 'process_length':
         input_file = args.input
         output_folder = args.output_folder
-        length = int(args.filter_length)
-        # fa_format = args. fa_format
-        # tolerance = args.tolerance
+        min_length = args.filter_min_length
+        max_length = args.filter_max_length
         time_start_s = time.time()
-        process_length(input_file, output_folder, length)
+        process_length(input_file, output_folder, min_length, max_length)
         time_end_s = time.time()
         time_c = time_end_s - time_start_s
         print('time cost', time_c, 's')
@@ -106,4 +107,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    #remove_duplicates("/work/yaolab/mzhou10/clean_fastaq/mytuber/results/SRR20723831/blast_result/test_seq12.fasta", "/work/yaolab/mzhou10/clean_fastaq/mytuber/results/SRR20723831/blast_result/final_seq_unique_sequences_a.fasta")

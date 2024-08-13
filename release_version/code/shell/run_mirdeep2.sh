@@ -32,8 +32,6 @@ mapping_filter_score_species_file=$4
 fna_file=$5
 results=$6
 
-./main.sh -p extract -r ../../input/test_data1.fastq -o ../../output/extract -l 17 -F *TGGAATTCTCGGGTGCCAAGGAACTCCA* -t1 2 -t2 4
-
 echo "start"
 echo $(date)
 ## nead filter original reads only match species part
