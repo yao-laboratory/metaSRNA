@@ -143,13 +143,13 @@ check_create_dir() {
         else
             current_path="$current_path/$part"
         fi
-
-        if [[ ! -d "$current_path" ]]; then
-            if mkdir -p "$current_path"; then
-                printf "Directory created: %s\n" "$current_path"
-            fi
-        fi
     done
+
+    if [[ ! -d "$current_path" ]]; then
+        if mkdir -p "$current_path"; then
+            printf "Directory created: %s\n" "$current_path"
+        fi
+    fi
 }
 
 check_create_log_dir() {

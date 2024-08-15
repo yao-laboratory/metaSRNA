@@ -34,8 +34,9 @@ results=$6
 
 echo "start"
 echo $(date)
-## nead filter original reads only match species part
-python3 ${code_path}/prepare_mirdeep_reads_file.py -input_reads $clean_fasta_file -csv_file $mapping_filter_score_species_file -output_file $results/middle_results/reads.fa
+# ## nead filter original reads only match species part
+# python3 ${code_path}/prepare_mirdeep_reads_file.py -input_reads $clean_fasta_file -csv_file $mapping_filter_score_species_file -output_file $results/middle_results/reads.fa
+cp $clean_fasta_file $results/middle_results/reads.fa
 echo $(date)
 
 ## start mirdeep2 preparation

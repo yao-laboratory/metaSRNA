@@ -67,7 +67,7 @@ def extract_hairpin_loops(input_linearfold_result, input_reads, csv_file, output
             # first find hairpin information (find start end value)
             hairpin_match = hairpin_pattern.findall(verbose_section)
             if hairpin_match:
-                print(hairpin_match)
+                #print(hairpin_match)
                 # for match in hairpin_match:
                 df_add_len_and_seq.at[index, 'start'] = '|'.join(
                     str(match[0]) for match in hairpin_match)
