@@ -7,6 +7,7 @@ import pandas as pd
 import argparse
 import sys
 print(sys.executable)
+import datetime
 
 # conda_env = os.getenv('CONDA_DEFAULT_ENV')
 # if conda_env:
@@ -23,14 +24,14 @@ def get_mirdeep_reads(input_reads, csv_file, output_file):
     df_subset_csv = df_csv['qseqid'].drop_duplicates()
     # print(df_subset_csv)
     print("step1 finished")
-
+    # print('time cost', datetime.datetime.now().strftime("%H:%M:%S"))
     #step2. read original reads file
     df_fasta = pd.DataFrame(columns=['qseqid','sequence'])
+    data = []
     for index, record in enumerate(SeqIO.parse(input_reads, "fasta")):
-        df_fasta.at[index, 'qseqid'] = int(record.id)
-        # df.at[index, 'id'] = record.description.rsplit("_",1)[1]
-        df_fasta.at[index, 'sequence'] = str(record.seq)
-    # print(df_fasta)
+        data.append({'qseqid': int(record.id), 'sequence': str(record.seq)})
+    df_fasta = pd.DataFrame(data, columns=['qseqid','sequence'])
+    print(df_fasta)
     ### use inner merge cause after cleaning fasta filtering 17 and mapping with after cleaning fasta filtering 12 have different data, needs finding overlap
     df_subset_fasta = pd.merge(df_subset_csv, df_fasta, on='qseqid', how='inner')
     # print(df_subset_fasta)
