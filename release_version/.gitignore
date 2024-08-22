@@ -11,3 +11,5 @@
 **/main.py
 **/12_samples_output
 **/test_SRR18078867_output
+**/cleaning/test
+**/integration_old.sh

@@ -85,6 +85,7 @@ Programs and their Required Options:
       -c <clean_fasta_file>  Path to the clean FASTA file.
       -s <species_file>      Path to the top species mapping score file.
       -m <mirna_file>        Path to the miRNA mapping score file.
+      -u <umi_file>          Path to the UMI file.
       -o <output_folder>     Output folder including (analysis csv about how many seqid, percentage for overlapping)
 
   predict
@@ -297,9 +298,9 @@ main() {
 
             ;;
         integrate)
-            check_params c s m o
+            check_params c s m u o
             check_create_dir "${opts[o]}/middle_results"
-            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[s]}" "${opts[m]}" "${opts[o]}")"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[s]}" "${opts[m]}" "${opts[u]}" "${opts[o]}")"
             run_script "${DIR}/integration.sh" "$cleaning_code_path" "$after_cleaning_code_path" "${paths[@]}" 
             ;;
 

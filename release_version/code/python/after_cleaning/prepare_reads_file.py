@@ -26,7 +26,6 @@ def get_mirdeep_reads(input_reads, csv_file, output_file):
     print("step1 finished")
     # print('time cost', datetime.datetime.now().strftime("%H:%M:%S"))
     #step2. read original reads file
-    df_fasta = pd.DataFrame(columns=['qseqid','sequence'])
     data = []
     for index, record in enumerate(SeqIO.parse(input_reads, "fasta")):
         data.append({'qseqid': int(record.id), 'sequence': str(record.seq)})

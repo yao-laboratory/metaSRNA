@@ -22,8 +22,8 @@ def compare_lists(list1, list2):
                 count += 1
     return count
 
-def find_overlap(species_mapping_file, folder_path_microRNA, folder_path_overlap):
-    f = path.join(folder_path_overlap, 'mirna_and_topspecies_overlap_analysis.csv')
+def find_overlap(species_mapping_file, folder_path_microRNA, overlap_file):
+    # f = path.join(folder_path_overlap, 'mirna_and_topspecies_overlap_analysis.csv')
     # print(folder_path_microRNA)
     ##microRNA statistics
     files_m = os.listdir(folder_path_microRNA)
@@ -78,7 +78,7 @@ def find_overlap(species_mapping_file, folder_path_microRNA, folder_path_overlap
     # print(total_final)
     # Write DataFrame to an Excel file
     total_final = pd.DataFrame(total_final)
-    total_final.to_csv(f, index=False)
+    total_final.to_csv(overlap_file, index=False)
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="overlap the blast results between species mapping and mirna (hairpin) mapping")
@@ -86,15 +86,15 @@ def parse_arguments():
                         type=str, help='species mappin file (after filtering score and reads length)', default="none")
     parser.add_argument('-hairpin_folder', required=True,
                         type=str, help='hairpin folder', default="none")
-    parser.add_argument('-overlap_folder', required=True,
-                        type=str, help='overlap folder', default="none")                       
+    parser.add_argument('-overlap_file', required=True,
+                        type=str, help='overlap file path', default="none")                       
     return parser.parse_args()
 
 def main():
     args = parse_arguments()
-    if args.species_mapping_file and args.hairpin_folder and args.overlap_folder:
+    if args.species_mapping_file and args.hairpin_folder and args.overlap_file:
         # time_start_s = time.time()
-        find_overlap(args.species_mapping_file, args.hairpin_folder, args.overlap_folder)
+        find_overlap(args.species_mapping_file, args.hairpin_folder, args.overlap_file)
         # time_end_s = time.time()
         # time_c = time_end_s - time_start_s
         # print('time cost', time_c, 's')
