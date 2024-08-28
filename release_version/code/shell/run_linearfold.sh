@@ -21,10 +21,6 @@ cat ${middle_results}/predict_use.fasta | linearfold --fasta --Vienna --verbose 
 echo $(date)
 
 # ### start linear fold result analysis
-# export PARAM1=$results/predict_result/${sample_id}_my_predict
-# export PARAM2=$results/blast_result/${sample_id}_seq12_unique_sequences.fasta
-# export PARAM3=$results/blast_result/blastn_filter_${sample_id}_shorter_after_filter.csv
-# export PARAM4=$results/predict_result/${sample_id}_hairpin_information.csv
 echo $(date)
 python3 $code_path/final_linear_fold_result.py -input_linearfold_result ${middle_results}/predict_final -input_reads $clean_fasta_file -csv_file $mapping_filter_score_species_file -output_file ${results}/hairpin_information.csv
 echo $(date)

@@ -27,7 +27,7 @@ python3 ${code_path}/clean_command.py clean_fastq -input $input -output_filename
 cat $results/middle_results/output_1_step1.fastq $results/middle_results/output_1_step2.fastq > $results/middle_results/final_seq.fastq 
 cat $results/middle_results/output_2_step1.fastq $results/middle_results/output_2_step2.fastq > $results/final_umi.fastq 
 # need to add: ${code_path}/clean_command.py De-duplication
-python3 ${code_path}/process_sequence_length.py process_length -input $results/middle_results/final_seq.fastq  -output_folder $results -filter_min_length $num
+python3 ${code_path}/filter_sequence_length.py process_length -input $results/middle_results/final_seq.fastq  -output_folder $results -filter_min_length $num
 
 seqtk seq -a $results/final_seq_${num}.fastq  > $results/final_seq_${num}.fasta
 seqtk seq -a $results/final_seq_${num}.fastq  > $results/final_seq_${num}.fa
