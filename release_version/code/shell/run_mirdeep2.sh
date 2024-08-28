@@ -25,10 +25,6 @@ update_combined_fna_format() {
     fi
 }
 
-cleanup_folder() {
-    local folder="$1"
-    find "$folder" -mindepth 1 \( ! -path "$folder/middle_results" ! -path "$folder/middle_results/database" \) -exec rm -rf {} +
-}
 
 database_name=$1
 code_path=$2
@@ -36,8 +32,6 @@ clean_fasta_file=$3
 fna_file=$4
 results=$5
 
-
-cleanup_folder $results
 
 echo "start"
 echo $(date)

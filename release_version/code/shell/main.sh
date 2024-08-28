@@ -94,10 +94,21 @@ Programs and their Required Options:
       -w <models>                choose model you wanna predict: mirdeep2, linearfold or both
       -r <raw_data>              Path to the raw genomic data.
       -c <clean_fasta_file>      Path to the clean FASTA file.
-      -m <mapping_filter_score>  Path to the mapping filter score file.
+      -m <mapping_filter_score_file>  Path to the mapping filter score file.
       -f <fna_file>              Path to the FNA file.
       -n <database_name>         Name of the used database.
       -o <output_folder>         Output folder including (predictive results) 
+
+
+  produce_final_form
+    - Integrate species and miRNA data sets mapping results.
+    - Options:
+      -c  <clean_fasta_file>      Path to the clean FASTA file (after filtering length and removing duplicates)
+      -m  <mapping_mirna_file>    Path to the miRNA mapping score file.
+      -inf <duplicate_sequences_information> Path to file about duplicate sequences information.
+      -mr <mirdeep_result>        Path to folder about mirdeep2 prediction result.
+      -lf <linearfold_result>     Path to file about linearfold prediction results.
+      -o <output_folder>          Output folder
 
   all
     - Execute all available processes sequentially.
@@ -144,24 +155,37 @@ check_create_dir() {
         else
             current_path="$current_path/$part"
         fi
-    done
 
-    if [[ ! -d "$current_path" ]]; then
-        if mkdir -p "$current_path"; then
-            printf "Directory created: %s\n" "$current_path"
+        if [[ ! -d "$current_path" ]]; then
+            if mkdir -p "$current_path"; then
+                printf "Directory created: %s\n" "$current_path"
+            fi
         fi
+    done
+}
+
+cleanup_folder() {
+    local folder="$1"
+
+    if [ -d "$folder" ]; then
+        find "$folder" -mindepth 1 -exec rm -rf {} +
+        printf "Cleaned up everything in: %s\n" "$folder"
+    else
+        printf "The folder '%s' does not exist.\n" "$folder" >&2
     fi
 }
+
 
 check_create_log_dir() {
     local dir="$1"
     local program="$2"
-    check_create_dir "$dir"
+    check_create_dir "${dir}"
+    cleanup_folder "${dir}"
+    check_create_dir "${dir}/log_folder"
     # Define log files with timestamps
     local timestamp=$(date +'%Y-%m-%d_%H-%M-%S')
-    OUT_LOG="${dir}/${program}_${timestamp}.out"
-    ERROR_LOG="${dir}/${program}_${timestamp}.err"
-
+    OUT_LOG="${dir}/log_folder/${program}_${timestamp}.out"
+    ERROR_LOG="${dir}/log_folder/${program}_${timestamp}.err"
     # Initialize log files
     touch "$OUT_LOG"
     touch "$ERROR_LOG"
@@ -237,6 +261,9 @@ main() {
                 case "${OPTARG}" in
                     t1) opts[t1]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     t2) opts[t2]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    inf) opts[inf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    mr) opts[mr]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    lf) opts[lf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     *) log_error "Invalid option: --$OPTARG"; usage; exit 1 ;;
                 esac ;;
             h) usage ;;
@@ -247,7 +274,8 @@ main() {
 
 
     # Switch case to handle each function
-    check_create_log_dir "${opts[o]}/log_folder" "$program"
+    check_create_log_dir "${opts[o]}" "$program"
+    
     local cleaning_code_path=${PARENT_DIR}/python/cleaning
     local after_cleaning_code_path=${PARENT_DIR}/python/after_cleaning
     local refprok_database=${RELEASE_DIR}/database/blast_refprok_database
@@ -310,8 +338,8 @@ main() {
             check_create_dir "${opts[o]}/middle_results/database"
             
             run_mirdeep2() {
-                check_params c m f n o
-                IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[m]}" "${opts[f]}" "${opts[o]}")"
+                check_params c f n o
+                IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[f]}" "${opts[o]}")"
                 run_script "${DIR}/run_mirdeep2.sh" "${opts[n]}" "$after_cleaning_code_path" "${paths[@]}" 
             }
 
@@ -340,6 +368,13 @@ main() {
                     return 1
                     ;;
             esac
+            ;;
+
+        produce_final_form)
+            check_params c m inf mr lf o
+            check_create_dir "${opts[o]}/middle_results"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[m]}" "${opts[inf]}" "${opts[mr]}" "${opts[lf]}" "${opts[o]}"))"
+            run_script "${DIR}/final_form_production.sh" "$after_cleaning_code_path" "${paths[@]}"
             ;;
 
         all)
