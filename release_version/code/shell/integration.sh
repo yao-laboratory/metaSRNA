@@ -40,37 +40,29 @@ convert_fastq_to_fasta() {
 }
 
 # Function to prepare miRDeep2 input
-prepare_mirdeep2_input() {
+prepare_prediction_input() {
     local input_fasta=$1
-    local csv_file=$2
-    local output_file=$3
+    local output_folder=$2
+    local mapping_species=$3
+    local umi_file=$4
     
     python3 "${CODE_PATH_AFTER_CLEAN}/prepare_reads_file.py" \
         -input_reads "${input_fasta}" \
-        -csv_file "${csv_file}" \
-        -output_file "${output_file}"
-}
+        -csv_file "${mapping_species}/blast_score_filter.txt" \
+        -output_file "${output_folder}/prediction_temp_input.fasta"
 
-# Function to prepare linearfold input
-prepare_linearfold_input() {
-    local code_path_after_clean=$1
-    local mirdeep2_input_fasta=$2
-    local umi_file=$3
-    local mapping_species=$4
-    local results=$5
-
-    # Filter redundant sequences and prepare linearfold input
-    python3 "${code_path_after_clean}/filtering_redundant_sequences.py" \
-        -seq_reads "${mirdeep2_input_fasta}" \
+    # Filter redundant sequences and prepare prediction input
+    python3 "${CODE_PATH_AFTER_CLEAN}/filtering_redundant_sequences.py" \
+        -seq_reads "${output_folder}/prediction_temp_input.fasta" \
         -umi_reads "${umi_file}" \
-        -output_fasta "${results}/linearfold_input.fasta" \
-        -output_csv "${results}/redundant_sequences_information.csv"
+        -output_fasta "${output_folder}/prediction_input.fasta" \
+        -output_csv "${output_folder}/redundant_sequences_information.csv"
 
     # Filter species mapping file with new reads
-    python3 "${code_path_after_clean}/filter_mapping_result.py" \
+    python3 "${CODE_PATH_AFTER_CLEAN}/filter_mapping_result.py" \
         -input_mapping_file "${mapping_species}/blast_score_filter.txt" \
-        -input_filtered_clean_fasta "${results}/linearfold_input.fasta" \
-        -output_file "${results}/blast_score_linearfold_filter.txt"
+        -input_filtered_clean_fasta "${output_folder}/prediction_input.fasta" \
+        -output_file "${output_folder}/blast_score_prediction_filter.txt"
 }
 
 
@@ -94,11 +86,8 @@ main() {
     filter_sequence_length "${INPUT_FASTQ}" "${middle_results}"
     convert_fastq_to_fasta "${middle_results}/final_seq_18_to_40.fastq" "${middle_results}/final_seq_18_to_40.fasta"
 
-    # Prepare miRDeep2 input
-    prepare_mirdeep2_input "${middle_results}/final_seq_18_to_40.fasta" "${MAPPING_SPECIES}/blast_score_filter.txt" "${RESULTS}/mirdeep2_input.fasta"
-
-    # Prepare Linearfold input
-    prepare_linearfold_input "$CODE_PATH_AFTER_CLEAN" "$RESULTS/mirdeep2_input.fasta" "$UMI_FILE" "$MAPPING_SPECIES" "$RESULTS"
+    # Prepare prediction (miRDeep2 and linearfold) input
+    prepare_prediction_input "${middle_results}/final_seq_18_to_40.fasta" "${RESULTS}" "$MAPPING_SPECIES" "$UMI_FILE" 
 
     # Produce overlap analysis
     produce_overlap_analysis "${MAPPING_SPECIES}/blast_score_filter.txt" "${MAPPING_MIRNA}" "${RESULTS}/mirna_and_top_species_analysis.csv"
