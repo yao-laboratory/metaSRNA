@@ -373,7 +373,7 @@ main() {
         produce_final_form)
             check_params c m inf mr lf o
             check_create_dir "${opts[o]}/middle_results"
-            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[m]}" "${opts[inf]}" "${opts[mr]}" "${opts[lf]}" "${opts[o]}"))"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[m]}" "${opts[inf]}" "${opts[mr]}" "${opts[lf]}" "${opts[o]}")"
             run_script "${DIR}/final_form_production.sh" "$after_cleaning_code_path" "${paths[@]}"
             ;;
 

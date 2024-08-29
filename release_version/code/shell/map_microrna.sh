@@ -18,3 +18,5 @@ blastn -query $clean_fasta_file -db ${database}/${database_name} -out $results/b
 ###step2: calculate percentage
 num=$(wc -l $clean_fasta_file |awk '{print $1/2}')
 python3 $code_path/calculate_miRNA_mapping_percentage.py -total_seq_num $num -input_path $results/blastn_hairpin_rna.txt -output_folder $results
+
+python3 $code_path/extract_hairpin_mapping_sequences.py -input_fasta $clean_fasta_file -input_mapping $results/blastn_hairpin_rna.txt -output_path $results/blastn_hairpin_sequences.csv

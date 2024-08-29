@@ -46,7 +46,9 @@ def filtering_fasta(seq_reads, umi_reads, output_fasta, output_csv):
     grouped_df = grouped_df[['representative_id', 'sequence', 'qseqid_count', 'umi_count', 'same_seq_ids']]
     grouped_sorted_df =  grouped_df.sort_values(by="representative_id")
     check_id_duplicate(grouped_df, "sequence", "df_final")
-    grouped_sorted_df.to_csv(output_csv, index=False)
+    grouped_sorted_df.to_csv(output_csv, index=False, header=True)
+ 
+
     ###5th store the final fasta file
     # Create a list of SeqRecord objects
     seq_records = []
