@@ -35,6 +35,7 @@ def write_one_record(lines, result, output_files, id_map, x_num):
             
 
 def compare_string(remaining_target_seq,required_target_seq,direction):
+    # print("remaining_target_seq, required_target_seq",remaining_target_seq, required_target_seq)
     tolerance = 0
     # min_len = min(len(remaining_target_sequences), len(required_target_sequences))
     if len(required_target_seq) <= len(remaining_target_seq):
@@ -62,14 +63,22 @@ def compare_targets_torlerance(result, pattern, threshold, required_target_seq, 
             final_result = list(single_result)
             for i in range(len(required_target_seq)):
                 remaining_target_seq = single_result[i+1] if required_target_seq[i][1] == "right" else single_result[i]
+                # print("remaining_target_seq", remaining_target_seq)
                 #produce the final string(cut the remaining target sequences) at the same time
                 num = len(required_target_seq[i][0])
+                # print("num",num)
+                # print("required_target_seq[i]:", required_target_seq[i])
                 if required_target_seq[i][1] == "right":
-                    # print("single_result",single_result[i+1][num:])
-                    # print("final_result[i]",final_result[i+1])
-                    final_result[i+1] =  single_result[i+1][num:]
+                    # print("right,single_result",single_result[i+1][num:])
+                    # print("right,final_result[i+1]",final_result[i+1])
+                    final_result[i+1] =  single_result[i+1][num:][:match_x_count[1]] if match_x_count[1] > 1 else single_result[i+1][num:]
+                    # print("final_result", final_result)
+                    # print("right,final_result[i+1]",final_result[i+1])
                 else:
-                    final_result[i] =  single_result[i][:-num]
+                    final_result[i] =  single_result[i][:-num][-match_x_count[1]:] if match_x_count[1] > 1 else single_result[i][:-num]
+                #     print("final_result", final_result)
+                #     print("left,final_result[i]", final_result[i])
+                # print("final_result",final_result)
                 
                 direction = "head" if required_target_seq[i][1] == "right" else "tail"
                 # there are no possible to have match sequences, cause too short
@@ -83,6 +92,7 @@ def compare_targets_torlerance(result, pattern, threshold, required_target_seq, 
             if threshold_temp <= threshold and threshold_temp < threshold_minimum and flag == True:
                 threshold_minimum = threshold_temp
                 single_final_result = final_result
+                # print("single_final_result", single_final_result)
     # print("minimum",threshold_minimum)
     return threshold_minimum, single_final_result
 
@@ -141,7 +151,7 @@ def find_pattern_combination(information_list, pattern):
     return target_sequences, total_combination
 
 
-def match_sequnce_with_torlerance(target_sequences, total_combination, filter_line, information_list, output_files, threshold, id_map):
+def match_sequence_with_torlerance(target_sequences, total_combination, filter_line, information_list, output_files, threshold, id_map):
     threshold_minimum = sys.maxsize 
     final_result = ''
     #make target sequences' rest parts to compare
@@ -162,10 +172,12 @@ def save_one_record(lines, final_result, threshold_minimum, output_files, id_map
         return False
     #save the final strings results to different files
     [match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num] = information_list
+    # print("match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num",match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num)
     #print("x_num", x_num)
     if match_x[0] != "*":
-        #print(final_result[0])
+        # print(final_result[0])
         final_result[0] = final_result[0][:match_x_count[0]]
+        # print(final_result[0])
     # print("final_result", final_result)
     write_one_record(lines, final_result, output_files, id_map, len(match_x))        
     return True 
@@ -173,9 +185,9 @@ def save_one_record(lines, final_result, threshold_minimum, output_files, id_map
 
 def find_all_pattern(lines, filter_line, information_list, output_files, threshold, id_map):
     target_sequences, total_combination = find_pattern_combination(information_list, "whole_pattern")
-    #print("1,1",target_sequences, total_combination)
-    threshold_minimum,final_result = match_sequnce_with_torlerance(target_sequences, total_combination, filter_line, information_list, output_files, threshold, id_map)
-    #print("!!!",threshold_minimum,final_result)
+    # print("information_list, target_sequences, total_combination",information_list, target_sequences, total_combination)
+    threshold_minimum,final_result = match_sequence_with_torlerance(target_sequences, total_combination, filter_line, information_list, output_files, threshold, id_map)
+    # print("threshold_minimum,final_result",threshold_minimum,final_result)
     if (save_one_record(lines, final_result, threshold_minimum, output_files, id_map, information_list)):
         return True
     return False
@@ -185,6 +197,7 @@ def find_all_pattern(lines, filter_line, information_list, output_files, thresho
 def find_patial_pattern (lines, filter_line, information_list, output_files, threshold, id_map, tail_torlerance):
     # print("lines",filter_line)
     [match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num] = information_list
+    # print(match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num)
     # tail_torlerance = 4
     length = find_unfinished_end_seq(filter_line, match_seq[-1], tail_torlerance)
     #if the final partial target sequence is matched
@@ -192,7 +205,7 @@ def find_patial_pattern (lines, filter_line, information_list, output_files, thr
         #print(length)
         target_sequences, total_combination = find_pattern_combination(information_list,"partial_pattern")
         # print("2,2",target_sequences, total_combination)
-        threshold_minimum,final_result = match_sequnce_with_torlerance(target_sequences, total_combination, filter_line[:-length], information_list, output_files, threshold, id_map)
+        threshold_minimum,final_result = match_sequence_with_torlerance(target_sequences, total_combination, filter_line[:-length], information_list, output_files, threshold, id_map)
         #print("!!!2",threshold_minimum,final_result)
         if (save_one_record(lines, final_result, threshold_minimum, output_files, id_map, information_list)):
             return True
@@ -264,9 +277,11 @@ def clean_step2(information_list, input_file, output_file_step1, output_files_st
                     filter_line = re.sub("^N+|\s", "", lines[1])
 
                     if (find_all_pattern(lines, filter_line, information_list, output_files_step2, threshold, id_map)):
+                        # print("find_all_pattern")
                         id_map += 1
                     else:
                         if (find_patial_pattern (lines, filter_line, information_list, output_files_step2, threshold, id_map, tail_tolerance)):
+                            # print("find_patial_pattern")
                             id_map += 1
                         else:
                             store_unmatched_file(lines, unmatched_file_step2)
