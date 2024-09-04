@@ -31,7 +31,7 @@ def filtering_fasta(seq_reads, umi_reads, output_fasta, output_csv):
         data_umi.append({'qseqid': int(record.id), 'umi': str(record.seq)})
     df_umi = pd.DataFrame(data_umi, columns=['qseqid','umi'])
     check_id_duplicate(df_umi,"qseqid","df_umi")
-    print(df_umi)
+    print("df_umi", df_umi)
     ###3rd step combine seq and umi form
     merged_df = pd.merge(df_fasta, df_umi, on='qseqid', how='left')
     ###4th produce final form
