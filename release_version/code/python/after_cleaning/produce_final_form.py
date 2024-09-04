@@ -37,6 +37,7 @@ def transform_sequences(row):
         # Reverse complement after replacing 'U' with 'T'
         return reverse_complement(new_row)
     return new_row
+    
 def merge_and_match(df1, df2, new_column_name):
     merged_df = pd.merge(df1, df2, on='sequence', how='left', indicator=True)
 
@@ -89,15 +90,20 @@ def produce_form(final_fasta, input_mirdeep2_folder, linearfold_results, mirna_m
         start_row = next((i for i, line in enumerate(lines) if 'novel miRNAs predicted by miRDeep2' in line), None)
         if start_row is not None:
             df_table = pd.read_csv(mirdeep2_path, sep='\t', skiprows=start_row + 1)
-            df_table["consensus mature sequence"] = df_table["consensus mature sequence"].str.upper()
-            print("df_table.columns:\n", df_table.columns)
-            print("df_table.head():\n", df_table.head())
-            print("df_table['consensus mature sequence']:\n", df_table['consensus mature sequence'])
-            print("df_table['precursor coordinate']:\n", df_table['precursor coordinate'])
+            # print(df_table)
+            if df_table.empty:
+                df["result_df_mirdeep"] = pd.DataFrame(columns=["sequence"])
+            else:
+                df_table["consensus mature sequence"] = df_table["consensus mature sequence"].str.upper()
+                # print("df_table.columns:\n", df_table.columns)
+                # print("df_table.head():\n", df_table.head())
+                # print("df_table['consensus mature sequence']:\n", df_table['consensus mature sequence'])
+                # print("df_table['precursor coordinate']:\n", df_table['precursor coordinate'])
 
-            df["result_df_mirdeep"] = df_table.apply(transform_sequences, axis=1).to_frame(name="sequence")
-            # df["result_df_mirdeep"]["mirDeep"] = 1
-            print("df['result_df_mirdeep']:\n", df["result_df_mirdeep"])
+                df["result_df_mirdeep"] = df_table.apply(transform_sequences, axis=1).to_frame(name="sequence")
+                # df["result_df_mirdeep"]["mirDeep"] = 1
+                # print("df['result_df_mirdeep']:\n", df["result_df_mirdeep"])
+                
 
     #merge them together
     for df_name in df_names:
