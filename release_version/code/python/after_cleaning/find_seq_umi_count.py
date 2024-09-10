@@ -86,25 +86,25 @@ def calculate_seq_to_uniumi(whole_umi_fastq):
     #start calculate unique umi count:
     # first step: create umi dictionary
     whole_umi_dict = {}
-    with open(whole_umi_fastq, 'r') as input_umi_file:
-        while True:
-            lines = []
-            for i in range(2):
-                line = input_umi_file.readline()
-                if (not line):
+    if whole_umi_fastq not in {None, 'none', 'None'}:
+        with open(whole_umi_fastq, 'r') as input_umi_file:
+            while True:
+                lines = []
+                for i in range(2):
+                    line = input_umi_file.readline()
+                    if (not line):
+                        break
+                    lines.append(line.strip())
+                if (not lines or len(lines) <= 1):
+                    input_umi_file.close()
                     break
-                lines.append(line.strip())
-            if (not lines or len(lines) <= 1):
-                input_umi_file.close()
-                break
-            if len(lines) == 2 and lines[0].find('@') != -1:
-                filtered_string = lines[0].replace('@', '')
-                seq_num = int(filtered_string)
-                #print(seq_num)
-                if seq_num not in whole_umi_dict:
-                    whole_umi_dict[seq_num] = ""
-                whole_umi_dict[seq_num] = lines[1]
-                
+                if len(lines) == 2 and lines[0].find('@') != -1:
+                    filtered_string = lines[0].replace('@', '')
+                    seq_num = int(filtered_string)
+                    #print(seq_num)
+                    if seq_num not in whole_umi_dict:
+                        whole_umi_dict[seq_num] = ""
+                    whole_umi_dict[seq_num] = lines[1]            
     return whole_umi_dict
 
 #add unique_umi_count to dataframe seqnumlist then save to the csv file
@@ -112,17 +112,18 @@ def save_seq_umi(whole_umi_dict, output_unique_csv, seqnumlist):
     # Write the modified data back to the CSV file with the new column
     # print(whole_umi_dict)
     # print(genetype_seqnumlist_dict)
-    for index, row in seqnumlist.iterrows():
-        # print(row['seq_num_list'])
-        unique_seqnum_set = sorted(row['seq_num_list'])
-        # print("bbbb",unique_seqnum_set)
-        umi_list = []
-        for unique_seq_num in unique_seqnum_set:
-            # print("ccc",unique_seq_num)
-            umi_list.append(whole_umi_dict[int(unique_seq_num)])
-        # print(umi_list)
-        unique_umi_list = set(umi_list)
-        seqnumlist.at[index, 'unique_umi_count'] = len(unique_umi_list)
+    if whole_umi_dict:
+        for index, row in seqnumlist.iterrows():
+            # print(row['seq_num_list'])
+            unique_seqnum_set = sorted(row['seq_num_list'])
+            # print("bbbb",unique_seqnum_set)
+            umi_list = []
+            for unique_seq_num in unique_seqnum_set:
+                # print("ccc",unique_seq_num)
+                umi_list.append(whole_umi_dict[int(unique_seq_num)])
+            # print(umi_list)
+            unique_umi_list = set(umi_list)
+            seqnumlist.at[index, 'unique_umi_count'] = len(unique_umi_list)
             
     print(seqnumlist)
     df_filtered = pd.DataFrame()

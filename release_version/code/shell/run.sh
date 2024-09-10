@@ -2,37 +2,75 @@
 # Exit immediately if any command fails
 set -e
 
-code_path=$1
-num=$2
-format=$3
-fault_tl=$4
-incomplete_tl=$5
-input=$6
-results=$7
+CODE_PATH=$1
+NUM=$2
+FORMAT=$3
+FAULT_TL=$4
+INCOMPLETE_TL=$5
+UMI_FLAG=$6
+INPUT=$7
+RESULTS=$8
 
-echo "$format"
-echo "$fault_tl"
-echo "$incomplete_tl"
-echo "$input"
-echo "$results"
-echo "$code_path"
+# echo "$FORMAT"
+# echo "$FAULT_TL"
+# echo "$INCOMPLETE_TL"
+echo "$INPUT"
+# echo "$RESULTS"
+# echo "$UMI_FLAG"
+# echo "$CODE_PATH"
 
-# clean_command_py=${code_path}/clean_command.py
-# process_length_py=${code_path}/process_sequence_length.py
+# run clean_command script
+run_clean_command() {
+    python3 "${CODE_PATH}/clean_command.py" clean_fastq \
+        -input "$INPUT" \
+        -output_filename "${RESULTS}/middle_results/output" \
+        -fa_format "$FORMAT" \
+        -fault_tolerance "$FAULT_TL" \
+        -tail_incomplete_tolerance "$INCOMPLETE_TL"
+}
+
+# produce original sequence file
+produce_seq() {
+    local step1="${RESULTS}/middle_results/output_1_step1.fastq"
+    local step2="${RESULTS}/middle_results/output_1_step2.fastq"
+    local final_seq="${RESULTS}/middle_results/final_seq.fastq"
+    local output_folder="$RESULTS"
+    
+    cat "$step1" "$step2" > "$final_seq"
+
+    python3 "${CODE_PATH}/filter_sequence_length.py" process_length \
+        -input "$final_seq" \
+        -output_folder "$output_folder" \
+        -filter_min_length "$NUM"
+
+    # Convert FASTQ to FASTA formats
+    seqtk seq -a "${RESULTS}/final_seq_${NUM}.fastq" > "${RESULTS}/final_seq_${NUM}.fasta"
+    seqtk seq -a "${RESULTS}/final_seq_${NUM}.fastq" > "${RESULTS}/final_seq_${NUM}.fa"
+}
 
 
-# gzip -d -c $input/$1.fastq.gz > $results/$1.fastq
+# produce umi file
+produce_umi() {
+    if [[ "$UMI_FLAG" != 0 ]]; then
+        local umi_step1="${RESULTS}/middle_results/output_${UMI_FLAG}_step1.fastq"
+        local umi_step2="${RESULTS}/middle_results/output_${UMI_FLAG}_step2.fastq"
+        local final_umi="${RESULTS}/final_umi.fastq"
+        local final_umi_fasta="${RESULTS}/final_umi.fasta"
 
-python3 ${code_path}/clean_command.py clean_fastq -input $input -output_filename $results/middle_results/output -fa_format $format  -fault_tolerance $fault_tl -tail_incomplete_tolerance $incomplete_tl
-cat $results/middle_results/output_1_step1.fastq $results/middle_results/output_1_step2.fastq > $results/middle_results/final_seq.fastq 
-cat $results/middle_results/output_2_step1.fastq $results/middle_results/output_2_step2.fastq > $results/final_umi.fastq 
-# need to add: ${code_path}/clean_command.py De-duplication:same seq id and same umi
-python3 ${code_path}/filter_sequence_length.py process_length -input $results/middle_results/final_seq.fastq  -output_folder $results -filter_min_length $num
+        cat "$umi_step1" "$umi_step2" > "$final_umi"
+        seqtk seq -a "$final_umi" > "$final_umi_fasta"
+        
+        # De-duplication: same seq and same umi
+        # python3 "${CODE_PATH}/clean_command.py" De-duplication ..
+    fi
+}
+main() {
+    run_clean_command
+    produce_seq
+    produce_umi
+    # wc -l $results/$1.fastq | awk '{print $1/4}'
+    # wc -l $results/final.fastq | awk '{print $1/4}'
+    # wc -l $results/final_seq12.fastq | awk '{print $1/4}'
+}
+main "$@"
 
-seqtk seq -a $results/final_seq_${num}.fastq  > $results/final_seq_${num}.fasta
-seqtk seq -a $results/final_seq_${num}.fastq  > $results/final_seq_${num}.fa
-seqtk seq -a $results/final_umi.fastq   > $results/final_umi.fasta
-
-wc -l $results/$1.fastq | awk '{print $1/4}'
-wc -l $results/run_result/final.fastq | awk '{print $1/4}'
-wc -l $results/run_result/final_seq12.fastq | awk '{print $1/4}'

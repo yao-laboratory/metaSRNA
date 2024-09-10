@@ -13,9 +13,26 @@ import datetime
 #     print(f"Active Conda environment: {conda_env}")
 # else:
 #     print("No Conda environment is active.")
-def check_id_duplicate(df, column_name, df_name):
+def check_id_duplicate(df, column_name):
     if df[column_name].duplicated().any():
-        raise ValueError(f"dataframe: '{df_name}' , its' column: '{column_to_check}' has duplicate values")
+        raise ValueError(f"dataframe: '{df}' , its' column: '{column_to_check}' has duplicate values")
+
+def create_umi_dataframe(umi_reads):
+    data_umi = []
+    for index, record in enumerate(SeqIO.parse(umi_reads, "fasta")):
+        data_umi.append({'qseqid': int(record.id), 'umi': str(record.seq)})
+    df_umi = pd.DataFrame(data_umi, columns=['qseqid','umi'])
+    check_id_duplicate(df_umi,"qseqid")
+    return df_umi
+
+def group_sequences(df, umi_reads):
+    grouped_df = df.groupby('sequence').agg(
+        representative_id=('qseqid', lambda x: x.iloc[0]),
+        qseqid_count=('qseqid', 'count'),
+        same_seq_ids=('qseqid', lambda x: ','.join(map(str, x))),
+        **({'umi_count': ('umi', lambda x: len(set(x)))} if umi_reads not in {None, 'none', 'None'} else {})
+    ).reset_index()
+    return grouped_df
 
 def filtering_fasta(seq_reads, umi_reads, output_fasta, output_csv):
     ##first step: store fasta to a dataframe
@@ -23,32 +40,22 @@ def filtering_fasta(seq_reads, umi_reads, output_fasta, output_csv):
     for index, record in enumerate(SeqIO.parse(seq_reads, "fasta")):
         data_seq.append({'qseqid': int(record.id), 'sequence': str(record.seq)})
     df_fasta = pd.DataFrame(data_seq, columns=['qseqid','sequence'])
-    check_id_duplicate(df_fasta,"qseqid","df_fasta")
+    check_id_duplicate(df_fasta,"qseqid")
     print(df_fasta)
+    name_list =[]
     ###2nd step store umi fasta to a dataframe
-    data_umi = []
-    for index, record in enumerate(SeqIO.parse(umi_reads, "fasta")):
-        data_umi.append({'qseqid': int(record.id), 'umi': str(record.seq)})
-    df_umi = pd.DataFrame(data_umi, columns=['qseqid','umi'])
-    check_id_duplicate(df_umi,"qseqid","df_umi")
-    print("df_umi", df_umi)
-    ###3rd step combine seq and umi form
-    merged_df = pd.merge(df_fasta, df_umi, on='qseqid', how='left')
-    ###4th produce final form
-    # Group by 'seq' and aggregate
-    grouped_df = merged_df.groupby('sequence').agg(
-        representative_id=('qseqid', lambda x: x.iloc[0]),
-        qseqid_count=('qseqid', 'count'), 
-        umi_count=('umi', lambda x: len(set(x))),
-        same_seq_ids=('qseqid', lambda x: ','.join(map(str, x)))
-    ).reset_index()
-    # Reorder the columns to make representative_id the first column
-    grouped_df = grouped_df[['representative_id', 'sequence', 'qseqid_count', 'umi_count', 'same_seq_ids']]
-    grouped_sorted_df =  grouped_df.sort_values(by="representative_id")
-    check_id_duplicate(grouped_df, "sequence", "df_final")
+    if umi_reads not in {None, 'none', 'None'}:
+        df_umi = create_umi_dataframe(umi_reads)
+        merged_df = pd.merge(df_fasta, df_umi, on='qseqid', how='left')
+        check_id_duplicate(merged_df, "qseqid")
+    else:
+        merged_df = df_fasta
+
+    grouped_df = group_sequences(merged_df, umi_reads)
+    grouped_sorted_df = grouped_df.sort_values(by="representative_id")
+    check_id_duplicate(grouped_df, "sequence")
     grouped_sorted_df.to_csv(output_csv, index=False, header=True)
  
-
     ###5th store the final fasta file
     # Create a list of SeqRecord objects
     seq_records = []
@@ -76,7 +83,7 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    if args.seq_reads and args.umi_reads and args.output_fasta and args.output_csv:
+    if args.seq_reads and args.output_fasta and args.output_csv:
         # time_start_s = time.time()
         filtering_fasta(args.seq_reads, args.umi_reads, args.output_fasta, args.output_csv)
         # time_end_s = time.time()

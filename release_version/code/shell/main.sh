@@ -32,13 +32,13 @@ Programs and their Required Options:
   extract
     - Extract data from raw input files.
     - Options:
-      -r <raw_data>                      Path to the raw data file.
-      -l <filter_minimum_length>         raw data fitering minimum length condition
-      -o <output_folder>                 Output folder including (clean fasta file and corresponding umi file)
-      -F <clean_format>                  Flexible cleaning code pattern
-      -t1 <fault_torlerance>             how many bits for the pattern not correct
-      -t2 <tail_incomplete_tolerance>    how many incomplete bits for the pattern tail
-
+      -r <raw_data>                       Path to the raw data file.
+      -l <filter_minimum_length>          raw data fitering minimum length condition
+      -o <output_folder>                  Output folder including (clean fasta file and corresponding umi file)
+      -F <clean_format>                   Flexible cleaning code pattern
+      --t1 <fault_torlerance>             This option sets the number of bits (errors) allowed in the pattern that are not correct.
+      --t2 <tail_incomplete_tolerance>    This parameter specifies how many incomplete bits are allowed in the pattern tail.
+      --umi <umi exist flag>              This flag indicates whether a UMI exists,0: not exist, 1-n:nth part in the above -F pattern
 
   detect_species
     - Detect Top nth species in clean fasta data.
@@ -217,7 +217,9 @@ abs_path() {
     local path
     local abs_paths
     for path in "$@"; do
-        if [[ -e "$path" ]]; then
+        if [[ -z "$path" || "${path,,}" == "none" ]]; then
+            abs_paths+="$path "
+        elif [[ -e "$path" ]]; then
             local abs
             abs=$(readlink -f "$path")
             if [[ $? -ne 0 ]]; then
@@ -259,12 +261,13 @@ main() {
             F) opts[F]=$OPTARG ;;
             -)
                 case "${OPTARG}" in
-                    t1) opts[t1]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
-                    t2) opts[t2]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    t1)  opts[t1]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    t2)  opts[t2]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    umi) opts[umi]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     inf) opts[inf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
-                    mr) opts[mr]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
-                    lf) opts[lf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
-                    *) log_error "Invalid option: --$OPTARG"; usage; exit 1 ;;
+                    mr)  opts[mr]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    lf)  opts[lf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    *)   log_error "Invalid option: --$OPTARG"; usage; exit 1 ;;
                 esac ;;
             h) usage ;;
             \?) log_error "Invalid option: -$OPTARG"; usage ;;
@@ -282,10 +285,10 @@ main() {
 
     case "$program" in
         extract)
-            check_params r l o F t1 t2
+            check_params r l o F t1 t2 umi
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[r]}" "${opts[o]}")"
-            run_script "${DIR}/run.sh" "$cleaning_code_path" "${opts[l]}" "${opts[F]}" "${opts[t1]}" "${opts[t2]}" "${paths[@]}"
+            run_script "${DIR}/run.sh" "$cleaning_code_path" "${opts[l]}" "${opts[F]}" "${opts[t1]}" "${opts[t2]}" "${opts[umi]}"  "${paths[@]}"
             ;;
 
         detect_species)
@@ -307,7 +310,7 @@ main() {
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[g]}" "${opts[m]}" "${opts[u]}" "${opts[o]}")"
             run_script "${DIR}/species_function_quantification.sh" "$after_cleaning_code_path" "${paths[@]}"
-
+            
             ;;
 
         map_mirna)
