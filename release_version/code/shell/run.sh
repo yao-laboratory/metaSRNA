@@ -21,12 +21,18 @@ echo "$INPUT"
 
 # run clean_command script
 run_clean_command() {
-    python3 "${CODE_PATH}/clean_command.py" clean_fastq \
-        -input "$INPUT" \
-        -output_filename "${RESULTS}/middle_results/output" \
-        -fa_format "$FORMAT" \
-        -fault_tolerance "$FAULT_TL" \
-        -tail_incomplete_tolerance "$INCOMPLETE_TL"
+    if [[ "$FORMAT" != "clean" ]]; then
+        python3 "${CODE_PATH}/clean_command.py" clean_fastq \
+            -input "$INPUT" \
+            -output_filename "${RESULTS}/middle_results/output" \
+            -fa_format "$FORMAT" \
+            -fault_tolerance "$FAULT_TL" \
+            -tail_incomplete_tolerance "$INCOMPLETE_TL"
+    else
+        python3 "${CODE_PATH}/clean_command.py" after_clean \
+            -input "$INPUT" \
+            -output_path "${RESULTS}/middle_results/final_seq.fastq"
+    fi
 }
 
 # produce original sequence file
@@ -35,8 +41,10 @@ produce_seq() {
     local step2="${RESULTS}/middle_results/output_1_step2.fastq"
     local final_seq="${RESULTS}/middle_results/final_seq.fastq"
     local output_folder="$RESULTS"
-    
-    cat "$step1" "$step2" > "$final_seq"
+
+    if [[ "$FORMAT" != "clean" ]]; then
+        cat "$step1" "$step2" > "$final_seq"
+    fi
 
     python3 "${CODE_PATH}/filter_sequence_length.py" process_length \
         -input "$final_seq" \

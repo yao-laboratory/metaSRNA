@@ -233,7 +233,7 @@ def clean_step1(information_list, input_file, output_files_step1, unmatched_file
                             id1 += 1
                         else:
                             store_unmatched_file(lines, unmatched_file_step1)
-    file.close()
+
 
 
           

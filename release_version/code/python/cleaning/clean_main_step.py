@@ -113,4 +113,32 @@ def clean_main_step(input_file,output_filename,fa_format, tolerance, tail_tolera
             for i in range(len(output_files_step2)):
                 output_files_step2[i].close()
             print("cleaning_step 2 finished.")
-    
+
+def after_clean_step(input_file, output_path):
+    with open(input_file, 'r') as file, open(output_path, 'w') as output_file:
+        # Read the first line
+        id1 = 0
+        while True:
+            lines = []
+            line = file.readline()
+            if not line:
+                break
+            if "@" in line:
+                lines.append(line.strip())
+                for i in range(3):
+                    line = file.readline()
+                    #if the file end in this line, then break the loop
+                    if not line:
+                        break
+                    lines.append(line.strip())
+                id1 += 1
+                if len(lines) == 4 and "@" in lines[0] and "+" in lines[2]:
+                    line1_w = '@' + str(id1) + '\n'
+                    output_file.write(line1_w)
+                    line2_w = lines[1]+'\n'
+                    output_file.write(line2_w)
+                    line3_w = '+'+'\n'
+                    output_file.write(line3_w)
+                    line4_w = lines[3]+'\n'
+                    output_file.write(line4_w)
+

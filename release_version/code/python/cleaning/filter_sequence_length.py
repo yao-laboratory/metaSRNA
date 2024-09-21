@@ -25,7 +25,7 @@ def process_length(input_file, output_folder, minimum_length, maximum_length):
                 # output_file1_3.close()
                 # output_file2_2.close()
                 break
-            if len(lines) == 4 and lines[2] == "+":
+            if len(lines) == 4 and "+" in lines[2]:
                 # new_string = lines[1].replace("\n", "")
                 if len(lines[1]) >= minimum_length and len(lines[1]) <= maximum_length:
                     #line1_w = '@' + str(id1) + '\n'
