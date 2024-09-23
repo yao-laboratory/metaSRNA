@@ -28,8 +28,7 @@ def finding_one_score_line_gene(index_s, row_s, sorted_score_df, gtf_df, gtf_ind
                 #print(index_g, gtf_index_previous, row_g[3],row_g[4],row_g[8],row_s[2],row_s[3])
                 #print(str(row_g[8]))
                 #sorted_score_df.at[index_s,8] = str(row_g[8])
-                sorted_score_df["gene_information"] = row_g["attribute"].replace(',', ';')
-                #print(sorted_score_df[8])
+                sorted_score_df.at[index_s, "gene_information"]= row_g["attribute"].replace(',', ';')
                 return index_g
             # if score area on the left, gene inoformation area on the right, 
               # means before not in the area,cannot find the gene name, 
@@ -40,11 +39,11 @@ def finding_one_score_line_gene(index_s, row_s, sorted_score_df, gtf_df, gtf_ind
 
 def add_gene(input_gtf, input_score, output_csv):
     # gtf_file = "gtf_ecoli.gtf"
-    gtf_df = pd.read_csv(input_gtf, sep="\t",header = None)
+    gtf_df = pd.read_csv(input_gtf, sep="\t", header = None)
     gtf_df.columns = ["seqname", "source", "feature", "start", "end", "score", "strand", "frame", "attribute"]
     # print(gtf_df)
     
-    score_df = pd.read_csv(input_score, sep=",",header = None)
+    score_df = pd.read_csv(input_score, sep=",", header = None)
     score_df.columns =["qseqid", "sacc", "sstart", "send", "evalue", "bitscore", "qcovhsp", "pident"]
     #print(score_df)
     #print(score_df)
