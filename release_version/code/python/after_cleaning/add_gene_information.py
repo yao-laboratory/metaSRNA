@@ -30,7 +30,7 @@ def finding_one_score_line_gene(index_s, row_s, sorted_score_df, gtf_df, gtf_ind
         #if score start&end axies in the gene area,then take the gene information to this score line 
         if int(row_g["start"]) <= start_pos and end_pos <= int(row_g["end"]):
             #sorted_score_df.at[index_s,8] = str(row_g[8])
-            sorted_score_df.at[index_s, "gene_information"]= row_g["attribute"].replace(',', ';')
+            sorted_score_df.at[index_s, "gene_information"]= row_g["attribute"]
             return index_g
         # if score area on the left, gene inoformation area on the right, 
             # means before not in the area,cannot find the gene name, 
