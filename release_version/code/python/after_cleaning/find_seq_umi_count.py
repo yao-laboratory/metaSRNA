@@ -17,7 +17,7 @@ def calculate_uniseq(input_string, sorted_score_file):
     #print(tags)
     
     #start copy 7 columns to a new dataframe
-    sorted_score_df = pd.read_csv(sorted_score_file, sep=",",header = None)
+    sorted_score_df = pd.read_csv(sorted_score_file, sep=",",header = None, dtype={8: str})
     #inital the sorted_score_new which has ID, KEY1,KEY2...
     sorted_score_new = pd.DataFrame()
     sorted_score_new['id'] = sorted_score_df.iloc[:, 0].copy()

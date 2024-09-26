@@ -32,6 +32,18 @@ filter_gtf_comments() {
     fi
 }
 
+filtering_mapping_file() {
+    local input_mapping_file="$1"
+    local output_file="$2"
+    
+    if ! python3 "${CODE_PATH}/blast_process_main.py" keep_best_blast_hits \
+        -input_mapping_file "$input_mapping_file" \
+        -output_path "$output_file"; then
+        printf "Error: Failed to write best blast hits mapping file.\n" >&2
+        return 1
+    fi
+}
+
 run_blast_process() {
     local operation=$1
     shift
@@ -66,10 +78,13 @@ main() {
     # filter GTF file to remove comments
     filter_gtf_comments "$GTF_FILE"
 
+    ##minimize score_filter csv file
+    filtering_mapping_file "$FILTER_SCORE_FILE" "${MIDDLE_RESULTS_DIR}/blast_score_filter_best.csv"
     # add genes information to blast results
     run_blast_process "add_gene" \
         -input_gcf "$GTF_FILE" \
-        -input_score "$FILTER_SCORE_FILE" \
+        -input_score "${MIDDLE_RESULTS_DIR}/blast_score_filter_best.csv" \
+        -temp_csv "${MIDDLE_RESULTS_DIR}/blast_score_filter_ordered_temp.csv" \
         -output_csv "${MIDDLE_RESULTS_DIR}/blast_score_filter_add_gene.csv"
     # quantify species
     quantify_species "${MIDDLE_RESULTS_DIR}/blast_score_filter_add_gene.csv"

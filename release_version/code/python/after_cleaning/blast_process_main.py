@@ -4,6 +4,7 @@ from add_gene_information import add_gene
 from find_seq_umi_count import find_unique_count
 from find_seq_umi_count import find_unique_count_mirna
 from extract_sequences_from_genome import extract_sequences_from_genome
+from filter_mapping_result import keep_best_blast_hits
     
 def main():
     parser = argparse.ArgumentParser(prog='blastprocess')
@@ -17,6 +18,8 @@ def main():
                             type=str, help='input file: gtf', default="none")
     parser_c1.add_argument('-input_score', required=True,
                             type=str, help='input file: txt', default="none")
+    parser_c1.add_argument('-temp_csv', required=True,
+                            type=str, help='input file: csv', default="none")
     parser_c1.add_argument('-output_csv', required=True,
                             type=str, help='output file: csv', default="none")
     
@@ -58,16 +61,23 @@ def main():
 
     parser_c4.add_argument('-output_fasta', required=True,
                             type=str, help='output fasta', default="none")
-    
 
+    parser_c5 = subparsers.add_parser("keep_best_blast_hits",
+                                      help='from filterd mapping results, only keep best hit by every seqid ')
+    
+    parser_c5.add_argument('-input_mapping_file', required=True,
+                        type=str, help='input species mapping file path (this mapping file after score filtering)', default="none")
+    parser_c5.add_argument('-output_path', required=True,
+                            type=str, help='output path', default="none")
 
     args = parser.parse_args()
     if args.subcommand == 'add_gene':
         input_gcf = args.input_gcf
         input_score = args.input_score
+        temp_csv = args.temp_csv
         output_csv = args.output_csv
         time_start_s = time.time()
-        add_gene(input_gcf, input_score, output_csv)
+        add_gene(input_gcf, input_score, temp_csv, output_csv)
         time_end_s = time.time()
         time_c = time_end_s - time_start_s
         print('time cost', time_c, 's')
@@ -96,6 +106,14 @@ def main():
         output_fasta = args.output_fasta
         time_start_s = time.time()
         extract_sequences_from_genome(input_blast_result, input_genome, output_fasta)
+        time_end_s = time.time()
+        time_c = time_end_s - time_start_s
+        print('time cost', time_c, 's')
+    elif args.subcommand == 'keep_best_blast_hits':
+        input_mapping_file = args.input_mapping_file
+        output_path = args.output_path
+        time_start_s = time.time()
+        keep_best_blast_hits(input_mapping_file, output_path)
         time_end_s = time.time()
         time_c = time_end_s - time_start_s
         print('time cost', time_c, 's')

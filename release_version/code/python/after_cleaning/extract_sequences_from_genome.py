@@ -30,10 +30,7 @@ def extract_sequences_from_genome(input_blast_result, input_genome, output_fasta
             seq_id = row['qseqid']
             start = int(row['sstart'])
             end = int(row['send'])
-            # warning
-            # if df_start_pos == df_end_pos:
-            #     print("there is a problem!")
-
+            
             if start < end:
                 #number border protection
                 df_start_pos = (start - EXTRA_LEFT_GAP) if (start - EXTRA_LEFT_GAP) >= start_border else start_border
@@ -41,7 +38,7 @@ def extract_sequences_from_genome(input_blast_result, input_genome, output_fasta
                 # records.append({'seq_id': seq_id, 'seq': str(seq[df_start_pos: df_end_pos])})
                 SeqIO.write(SeqRecord(Seq(str(seq[df_start_pos: df_end_pos + 1])), id=str(seq_id), description="index_"+str(index)), output_file, "fasta")
                 # print(records[-1],df_start_pos,df_end_pos)
-            elif end < start:
+            else:
                 df_start_pos = (end - EXTRA_LEFT_GAP) if (end - EXTRA_LEFT_GAP) >= start_border else start_border
                 df_end_pos = (start + EXTRA_RIGHT_GAP) if (start + EXTRA_RIGHT_GAP) <= end_border else end_border
                 SeqIO.write(SeqRecord(Seq(str(seq[df_start_pos: df_end_pos + 1].reverse_complement())), id=str(seq_id), description="index_"+str(index)), output_file, "fasta")

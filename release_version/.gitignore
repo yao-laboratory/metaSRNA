@@ -16,4 +16,6 @@
 **/test_SRR18078867_output
 **/cleaning/test
 **/integration_old.sh
+**/species_detection_old.sh
+**/add_gene_information_old.py
 **/after_cleaning/analysis/*
