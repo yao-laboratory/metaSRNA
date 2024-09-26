@@ -18,7 +18,7 @@ def print_using_time(index_s,start_time):
     end = time.time() 
     use = end - start_time
     total_line = (index_s + 1) * 100000
-    print(f"processed total total_line lines in score file and used time is {use} seconds")
+    print(f"processed total {total_line} lines in score file and used time is {use} seconds")
         
 def finding_one_score_line_gene(index_s, row_s, sorted_score_df, gtf_df, gtf_index_previous):
      for index_g, row_g in gtf_df[gtf_index_previous:].iterrows():

@@ -3,12 +3,16 @@
 set -euo pipefail
 
 # Global variables
+echo "$1"
+echo "$2"
+
 CODE_PATH=$1
 GTF_FILE=$2
 FILTER_SCORE_FILE=$3
 UMI_FILE=$4
 RESULTS_DIR=$5
 MIDDLE_RESULTS_DIR=${RESULTS_DIR}/middle_results
+
 
 filter_gtf_comments() {
     local input_file=$1
@@ -33,8 +37,8 @@ filter_gtf_comments() {
 }
 
 filtering_mapping_file() {
-    local input_mapping_file="$1"
-    local output_file="$2"
+    local input_mapping_file=$1
+    local output_file=$2
     
     if ! python3 "${CODE_PATH}/blast_process_main.py" keep_best_blast_hits \
         -input_mapping_file "$input_mapping_file" \
