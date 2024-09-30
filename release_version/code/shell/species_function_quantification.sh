@@ -82,13 +82,13 @@ main() {
     # filter GTF file to remove comments
     filter_gtf_comments "$GTF_FILE"
 
-    ##minimize score_filter csv file
+    # ##minimize score_filter csv file
     filtering_mapping_file "$FILTER_SCORE_FILE" "${MIDDLE_RESULTS_DIR}/blast_score_filter_best.csv"
     # add genes information to blast results
     run_blast_process "add_gene" \
         -input_gcf "$GTF_FILE" \
         -input_score "${MIDDLE_RESULTS_DIR}/blast_score_filter_best.csv" \
-        -temp_csv "${MIDDLE_RESULTS_DIR}/blast_score_filter_ordered_temp.csv" \
+        -temp_folder "${MIDDLE_RESULTS_DIR}" \
         -output_csv "${MIDDLE_RESULTS_DIR}/blast_score_filter_add_gene.csv"
     # quantify species
     quantify_species "${MIDDLE_RESULTS_DIR}/blast_score_filter_add_gene.csv"

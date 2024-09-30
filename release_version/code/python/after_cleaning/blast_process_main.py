@@ -18,8 +18,8 @@ def main():
                             type=str, help='input file: gtf', default="none")
     parser_c1.add_argument('-input_score', required=True,
                             type=str, help='input file: txt', default="none")
-    parser_c1.add_argument('-temp_csv', required=True,
-                            type=str, help='input file: csv', default="none")
+    parser_c1.add_argument('-temp_folder', required=True,
+                            type=str, help='temp files folder', default="none")
     parser_c1.add_argument('-output_csv', required=True,
                             type=str, help='output file: csv', default="none")
     
@@ -74,10 +74,10 @@ def main():
     if args.subcommand == 'add_gene':
         input_gcf = args.input_gcf
         input_score = args.input_score
-        temp_csv = args.temp_csv
+        temp_folder = args.temp_folder
         output_csv = args.output_csv
         time_start_s = time.time()
-        add_gene(input_gcf, input_score, temp_csv, output_csv)
+        add_gene(input_gcf, input_score, temp_folder, output_csv)
         time_end_s = time.time()
         time_c = time_end_s - time_start_s
         print('time cost', time_c, 's')

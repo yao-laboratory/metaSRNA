@@ -14,8 +14,9 @@ def find_best_blast_hits(original_mapping_file):
     df_mapping.columns = ['qseqid','sacc','sstart','send','evalue','bitscore','qcovhsp','pident']
     print(df_mapping)
     # only keep one line of highest mapping result for each qseqid
-    #### Sort the DataFrame by 'qseqid' by ascending order, 'pident' first then 'qcovhsp' in descending order
-    df_sorted = df_mapping.sort_values(by=['qseqid', 'pident', 'qcovhsp'], ascending=[True, False, False])
+    #### Sort the DataFrame by 'qseqid' by ascending order, 'qcovhsp' first then 'pident' in descending order
+    df_sorted = df_mapping.sort_values(by=['qseqid', 'qcovhsp', 'pident'], ascending=[True, False, False])
+    # df_sorted = df_mapping.sort_values(by=['qseqid', 'pident', 'qcovhsp'], ascending=[True, False, False])
     print(f"df_sorted: {df_sorted}")
     #### Drop duplicates based on 'qseqid', keeping the first occurrence
     df_unique_mapping = df_sorted.drop_duplicates(subset='qseqid', keep='first').reset_index(drop=True)

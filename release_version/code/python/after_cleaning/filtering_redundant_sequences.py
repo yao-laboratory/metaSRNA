@@ -29,7 +29,7 @@ def group_sequences(df, umi_reads):
     grouped_df = df.groupby('sequence').agg(
         representative_id=('qseqid', lambda x: x.iloc[0]),
         qseqid_count=('qseqid', 'count'),
-        same_seq_ids=('qseqid', lambda x: ','.join(map(str, x))),
+        same_seq_ids=('qseqid', lambda x: '|'.join(map(str, x))),
         **({'umi_count': ('umi', lambda x: len(set(x)))} if umi_reads not in {None, 'none', 'None'} else {})
     ).reset_index()
     return grouped_df

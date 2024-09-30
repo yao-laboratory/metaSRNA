@@ -11,6 +11,7 @@
 **/main.py
 **/12_samples_output
 **/3_samples_output
+**/3_samples_omvs_output_old
 **/3_samples_omvs_output
 **/6_samples_output
 **/test_SRR18078867_output
@@ -18,4 +19,5 @@
 **/integration_old.sh
 **/species_detection_old.sh
 **/add_gene_information_old.py
+**/add_gene_information_latest.py
 **/after_cleaning/analysis/*
