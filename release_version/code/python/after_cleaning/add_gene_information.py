@@ -66,6 +66,7 @@ def add_gene(input_gtf, input_score, temp_folder, output_csv):
     mapping_score_df = pd.read_csv(input_score, sep=",")
     mapping_score_df.columns = ["qseqid", "sacc", "sstart", "send", "evalue", "bitscore", "qcovhsp", "pident"]
     mapping_score_df["gene_information"] = np.nan
+    mapping_score_df['gene_information'] = mapping_score_df['gene_information'].astype(object)
     #mapping score file needs reorder
     mapping_score_df.sort_values(by=['sacc', 'sstart', 'send'], ascending=[True, True, True], inplace=True)
     mapping_score_df.reset_index(drop=True, inplace=True)
