@@ -74,35 +74,45 @@ def produce_form(final_fasta, input_mirdeep2_folder, linearfold_results, mirna_m
         df["result_df_linearfold"] = produce_linearfold_final_result(linearfold_df)
         # check_id_duplicate(df["result_df_linearfold"], "sequence")
         print("df['result_df_linearfold']:\n", df["result_df_linearfold"])
+    else:
+        print("do not have linearfold results, so put linearfold column all set to 0")
+        df["result_df_linearfold"] = pd.DataFrame(columns=["sequence"])
 
     # Step 6: Extract sequence from miRDeep2 prediction result
     if input_mirdeep2_folder:
         print(input_mirdeep2_folder)
         mirdeep2_results =  [file for file in os.listdir(input_mirdeep2_folder) if file.endswith('.csv') and file.startswith('result_')]
-        if len(mirdeep2_results) != 1:
+        if len(mirdeep2_results) > 1:
             raise ValueError(f"predict_mirdeep folder has duplicate mirdeep results or no mirdeep2 result")
-        lines =[]
-        for file in mirdeep2_results:
-            mirdeep2_path = os.path.join(input_mirdeep2_folder, file)
-            with open(mirdeep2_path, 'r') as file:
-                lines = file.readlines()
+        elif len(mirdeep2_results) == 1:
+            lines =[]
+            for file in mirdeep2_results:
+                mirdeep2_path = os.path.join(input_mirdeep2_folder, file)
+                with open(mirdeep2_path, 'r') as file:
+                    lines = file.readlines()
 
-        start_row = next((i for i, line in enumerate(lines) if 'novel miRNAs predicted by miRDeep2' in line), None)
-        if start_row is not None:
-            df_table = pd.read_csv(mirdeep2_path, sep='\t', skiprows=start_row + 1)
-            # print(df_table)
-            if df_table.empty:
-                df["result_df_mirdeep"] = pd.DataFrame(columns=["sequence"])
-            else:
-                df_table["consensus mature sequence"] = df_table["consensus mature sequence"].str.upper()
-                # print("df_table.columns:\n", df_table.columns)
-                # print("df_table.head():\n", df_table.head())
-                # print("df_table['consensus mature sequence']:\n", df_table['consensus mature sequence'])
-                # print("df_table['precursor coordinate']:\n", df_table['precursor coordinate'])
+            start_row = next((i for i, line in enumerate(lines) if 'novel miRNAs predicted by miRDeep2' in line), None)
+            if start_row is not None:
+                df_table = pd.read_csv(mirdeep2_path, sep='\t', skiprows=start_row + 1)
+                # print(df_table)
+                if df_table.empty:
+                    df["result_df_mirdeep"] = pd.DataFrame(columns=["sequence"])
+                else:
+                    df_table["consensus mature sequence"] = df_table["consensus mature sequence"].str.upper()
+                    # print("df_table.columns:\n", df_table.columns)
+                    # print("df_table.head():\n", df_table.head())
+                    # print("df_table['consensus mature sequence']:\n", df_table['consensus mature sequence'])
+                    # print("df_table['precursor coordinate']:\n", df_table['precursor coordinate'])
 
-                df["result_df_mirdeep"] = df_table.apply(transform_sequences, axis=1).to_frame(name="sequence")
-                # df["result_df_mirdeep"]["mirDeep"] = 1
-                # print("df['result_df_mirdeep']:\n", df["result_df_mirdeep"])
+                    df["result_df_mirdeep"] = df_table.apply(transform_sequences, axis=1).to_frame(name="sequence")
+                    # df["result_df_mirdeep"]["mirDeep"] = 1
+                    # print("df['result_df_mirdeep']:\n", df["result_df_mirdeep"])
+        elif len(mirdeep2_results) == 0:
+            print("predict mirdeep2 tool has error, so put mirdeep2 column all set to 0")
+            df["result_df_mirdeep"] = pd.DataFrame(columns=["sequence"])
+    else:
+        print("do not run mirdeep2 tool, so put mirdeep2 column all set to 0")
+        df["result_df_mirdeep"] = pd.DataFrame(columns=["sequence"])
                 
 
     #merge them together
