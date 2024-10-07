@@ -1,6 +1,8 @@
 from io import StringIO
+import glob
 import os
 from os import listdir, path, makedirs
+import re
 import pandas as pd
 import subprocess
 import argparse
@@ -21,22 +23,22 @@ def produce_linearfold_final_result(df):
 
     return filtered_df[['sequence']]
 
-def extract_sign(pc_str):
-    # Extract "+" or "-"
-    return pc_str.rsplit(':', 1)[-1]
+# def extract_sign(pc_str):
+#     # Extract "+" or "-"
+#     return pc_str.rsplit(':', 1)[-1]
 
-def reverse_complement(seq):
-    # Create a Seq object and return its reverse complement
-    return str(Seq(seq).reverse_complement())
+# def reverse_complement(seq):
+#     # Create a Seq object and return its reverse complement
+#     return str(Seq(seq).reverse_complement())
 
-def transform_sequences(row):
-    print("row['consensus mature sequence']\n", row["consensus mature sequence"])
-    new_row = row["consensus mature sequence"].replace('U', 'T')
-    print("new_row\n", new_row)
-    if extract_sign(row["precursor coordinate"]) == "-":
-        # Reverse complement after replacing 'U' with 'T'
-        return reverse_complement(new_row)
-    return new_row
+# def transform_sequences(row):
+#     # print("row['{flag}']\n", row[flag])
+#     new_row = row.replace('U', 'T')
+#     print("new_row\n", new_row)
+#     # if extract_sign(row["precursor coordinate"]) == "-":
+#         # Reverse complement after replacing 'U' with 'T'
+#     print(reverse_complement(new_row))
+#     # return new_row
     
 def merge_and_match(df1, df2, new_column_name):
     merged_df = pd.merge(df1, df2, on='sequence', how='left', indicator=True)
@@ -46,6 +48,66 @@ def merge_and_match(df1, df2, new_column_name):
 
     # Drop the '_merge' column
     return merged_df.drop(columns=['_merge'])
+
+# def check_substring(seq, df2_sequences):
+#     return any(sub_seq in seq for sub_seq in df2_sequences)
+
+# def merge_include(df1, df2, new_column_name):
+#     # Check if sequences in df1 are in df2 and assign 1 or 0 accordingly
+#     df1[new_column_name]= df1['sequence'].apply(lambda seq: int(check_substring(seq, df2['sequence'])))
+#     return df1
+
+def get_seqnames_from_mrd_file(mrd_file_path):
+    identifiers = []
+    pattern = re.compile(r"(mmu_\d+_x\d+)")
+
+    # Open and read the .mrd file
+    with open(mrd_file_path, 'r') as file:
+        for line in file:
+            line = line.strip()
+            matches = pattern.findall(line)
+            if matches:
+                identifiers.extend(matches)
+
+    # Display the extracted identifiers
+    for seq in identifiers:
+        print(seq)
+    return identifiers
+
+def get_data_from_fasta(mrd_fasta_path, seq_names_list):
+    record_dict = SeqIO.to_dict(SeqIO.parse(mrd_fasta_path, "fasta"))
+    # Get sequences for the given record IDs
+    sequence_list = [str(record_dict[record_id].seq) for record_id in seq_names_list if record_id in record_dict]
+    df = pd.DataFrame(sequence_list, columns=["sequence"])
+    print("mirdeep2 sequences", df)
+    return df
+
+def produce_mirdeep2_results(input_mirdeep2_folder):
+    df_result = pd.DataFrame(columns=["sequence"])
+    if input_mirdeep2_folder:
+        # print(input_mirdeep2_folder)
+        mrd_temp_folder = os.path.join(input_mirdeep2_folder,"mirdeep_runs")
+        # print(mrd_temp_folder)
+        mrd_file_path = glob.glob(os.path.join(mrd_temp_folder, "run_*/output.mrd"))
+        print(mrd_file_path)
+        if len(mrd_file_path) > 1:
+            raise ValueError(f"predict_mirdeep folder has duplicate mirdeep results or no mirdeep2 result")
+        elif len(mrd_file_path) == 1:
+            seq_names_list = []
+            seq_names_list = get_seqnames_from_mrd_file(mrd_file_path[0])
+            if not seq_names_list:
+                return df_result
+            else:
+                mrd_fasta_path = os.path.join(input_mirdeep2_folder,"middle_results/reads_collapsed.fa")
+                if os.path.exists(mrd_fasta_path):
+                    return get_data_from_fasta(mrd_fasta_path, seq_names_list)
+                else:
+                    print("predict mirdeep2 tool has error, no fasta being found")
+        elif len(mrd_file_path) == 0:
+            print("predict mirdeep2 tool has error, so put mirdeep2 column all set to 0")
+    else:
+        print("do not run mirdeep2 tool, so put mirdeep2 column all set to 0")
+    return df_result
 
 def produce_form(final_fasta, input_mirdeep2_folder, linearfold_results, mirna_mapping_results, duplicates_information, output_folder):
     # Step 1: Initialize DataFrames
@@ -79,42 +141,8 @@ def produce_form(final_fasta, input_mirdeep2_folder, linearfold_results, mirna_m
         df["result_df_linearfold"] = pd.DataFrame(columns=["sequence"])
 
     # Step 6: Extract sequence from miRDeep2 prediction result
-    if input_mirdeep2_folder:
-        print(input_mirdeep2_folder)
-        mirdeep2_results =  [file for file in os.listdir(input_mirdeep2_folder) if file.endswith('.csv') and file.startswith('result_')]
-        if len(mirdeep2_results) > 1:
-            raise ValueError(f"predict_mirdeep folder has duplicate mirdeep results or no mirdeep2 result")
-        elif len(mirdeep2_results) == 1:
-            lines =[]
-            for file in mirdeep2_results:
-                mirdeep2_path = os.path.join(input_mirdeep2_folder, file)
-                with open(mirdeep2_path, 'r') as file:
-                    lines = file.readlines()
-
-            start_row = next((i for i, line in enumerate(lines) if 'novel miRNAs predicted by miRDeep2' in line), None)
-            if start_row is not None:
-                df_table = pd.read_csv(mirdeep2_path, sep='\t', skiprows=start_row + 1)
-                # print(df_table)
-                if df_table.empty:
-                    df["result_df_mirdeep"] = pd.DataFrame(columns=["sequence"])
-                else:
-                    df_table["consensus mature sequence"] = df_table["consensus mature sequence"].str.upper()
-                    # print("df_table.columns:\n", df_table.columns)
-                    # print("df_table.head():\n", df_table.head())
-                    # print("df_table['consensus mature sequence']:\n", df_table['consensus mature sequence'])
-                    # print("df_table['precursor coordinate']:\n", df_table['precursor coordinate'])
-
-                    df["result_df_mirdeep"] = df_table.apply(transform_sequences, axis=1).to_frame(name="sequence")
-                    # df["result_df_mirdeep"]["mirDeep"] = 1
-                    # print("df['result_df_mirdeep']:\n", df["result_df_mirdeep"])
-        elif len(mirdeep2_results) == 0:
-            print("predict mirdeep2 tool has error, so put mirdeep2 column all set to 0")
-            df["result_df_mirdeep"] = pd.DataFrame(columns=["sequence"])
-    else:
-        print("do not run mirdeep2 tool, so put mirdeep2 column all set to 0")
-        df["result_df_mirdeep"] = pd.DataFrame(columns=["sequence"])
+    df["result_df_mirdeep"] = produce_mirdeep2_results(input_mirdeep2_folder)
                 
-
     #merge them together
     for df_name in df_names:
         check_id_duplicate(df[df_name], "sequence")
