@@ -59,7 +59,7 @@ def merge_and_match(df1, df2, new_column_name):
 
 def get_seqnames_from_mrd_file(mrd_file_path):
     identifiers = []
-    pattern = re.compile(r"(mmu_\d+_x\d+)")
+    pattern = re.compile(r"(seq_\d+_x\d+)")
 
     # Open and read the .mrd file
     with open(mrd_file_path, 'r') as file:
