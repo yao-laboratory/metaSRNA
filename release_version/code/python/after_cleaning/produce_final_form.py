@@ -79,7 +79,11 @@ def get_data_from_fasta(mrd_fasta_path, seq_names_list):
     # Get sequences for the given record IDs
     sequence_list = [str(record_dict[record_id].seq) for record_id in seq_names_list if record_id in record_dict]
     df = pd.DataFrame(sequence_list, columns=["sequence"])
-    print("mirdeep2 sequences", df)
+    print("original mirdeep2 sequences:\t", df)
+    df.drop_duplicates(subset=["sequence"], inplace=True)
+    df.reset_index(drop=True, inplace=True)
+    print("mirdeep2 sequences after filtering redundants:\t", df)
+
     return df
 
 def produce_mirdeep2_results(input_mirdeep2_folder):
