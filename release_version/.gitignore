@@ -15,6 +15,7 @@
 **/3_samples_omvs_output
 **/6_samples_output
 **/5th_9samples_output
+**/6th_2samples_output
 **/test_SRR18078867_output
 **/cleaning/test
 **/integration_old.sh
@@ -22,3 +23,4 @@
 **/add_gene_information_old.py
 **/add_gene_information_latest.py
 **/after_cleaning/analysis/*
+**/test.txt

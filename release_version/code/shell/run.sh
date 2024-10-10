@@ -41,9 +41,14 @@ produce_seq() {
     local step2="${RESULTS}/middle_results/output_1_step2.fastq"
     local final_seq="${RESULTS}/middle_results/final_seq.fastq"
     local output_folder="$RESULTS"
-
     if [[ "$FORMAT" != "clean" ]]; then
-        cat "$step1" "$step2" > "$final_seq"
+        if [[ -f "$step2" ]]; then
+            cat "$step1" "$step2" > "$final_seq"
+            printf "Concatenated '%s' and '%s' into '%s'.\n" "$step1" "$step2" "$final_seq"
+        else
+            cat "$step1" > "$final_seq"
+            printf "File '%s' does not exist, concatenating only '%s' into '%s' due to fault tolerance is 0.\n" "$step2" "$step1" "$final_seq"
+        fi
     fi
 
     python3 "${CODE_PATH}/filter_sequence_length.py" process_length \
