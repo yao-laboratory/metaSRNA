@@ -54,7 +54,9 @@ module load bowtie/1.3
 bowtie-build $results/middle_results/fna_file.fa $results/middle_results/database/${database_name}
 
 ## start mirdeep2
+set +e
 collapse_reads_md.pl $results/middle_results/reads.fa seq > $results/middle_results/reads_collapsed.fa
 mapper.pl $results/middle_results/reads_collapsed.fa -c -p $results/middle_results/database/${database_name} -t $results/middle_results/reads_collapsed_vs_genome.arf
 miRDeep2.pl $results/middle_results/reads_collapsed.fa $results/middle_results/fna_file.fa $results/middle_results/reads_collapsed_vs_genome.arf none none none 2>$results/report.log
+set -e
 ## end
