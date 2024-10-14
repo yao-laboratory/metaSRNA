@@ -21,18 +21,24 @@ filter_gtf_comments() {
     # Create a secure temporary file
     temp_file=$(mktemp)
 
-    # Use grep to filter out lines starting with '#' and write to the temporary file
-    if ! grep -v '^#' "$input_file" > "$temp_file"; then
-        echo "Error: Failed to filter comments from $input_file" >&2
-        rm -f "$temp_file"  # Clean up temporary file in case of failure
-        return 1
-    fi
+    # Check if the file contains lines with '#'
+    if grep -q '^#' "$input_file"; then
+        # Use grep to filter out lines starting with '#' and write to the temporary file
+        if ! grep -v '^#' "$input_file" > "$temp_file"; then
+            echo "Error: Failed to filter comments from $input_file" >&2
+            rm -f "$temp_file"  
+            return 1
+        fi
 
-    # Move the temporary file back to the original file
-    if ! mv "$temp_file" "$input_file"; then
-        echo "Error: Failed to overwrite the original file $input_file" >&2
-        rm -f "$temp_file"  # Clean up temporary file in case of failure
-        return 1
+        # Move the temporary file back to the original file
+        if ! mv "$temp_file" "$input_file"; then
+            echo "Error: Failed to overwrite the original file $input_file" >&2
+            rm -f "$temp_file"  
+            return 1
+        fi
+    else
+        # If no comments are found, just remove the temporary file
+        rm -f "$temp_file"
     fi
 }
 
