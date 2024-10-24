@@ -104,7 +104,7 @@ def find_all_correct_pattern(lines, p_string, filter_line, information_list, out
     pattern = re.compile(p_string)
     result = pattern.findall(filter_line)
     # print("p_string",p_string,filter_line, id2)
-    #print("1",pattern,result)
+    #print("1",pattern,filter_line, result)
     if (result and result[0]):
         #print("2")
         [match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num] = information_list
@@ -211,8 +211,8 @@ def clean_step1(information_list, input_file, output_files_step1, unmatched_file
                     filter_line = re.sub("^N+|\s", "", lines[1])
                     p_string = ""
                     for i in range(len(match_seq)):
-                        p_string += r'(\w*)' + match_seq[i]
-                    p_string += r'(\w*)'
+                        p_string += r'(\w*?)' + match_seq[i]
+                    p_string += r'(\w*?)'
                     # print(p_string)
                     # print(p_string, id2)
                     if (find_all_correct_pattern(lines, p_string, filter_line, information_list, output_files_step1, 
