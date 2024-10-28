@@ -138,7 +138,7 @@ check_params() {
     local required=("$@")
     for param in "${required[@]}"; do
         if [ -z "${opts[$param]}" ]; then
-            log_error "Missing parameter: $param is required for $program."
+            log_error "Missing parameter: $param's value is required for $program."
             usage
         fi
     done
