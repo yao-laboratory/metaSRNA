@@ -109,6 +109,14 @@ Programs and their Required Options:
       -mr <mirdeep_result>        Path to folder about mirdeep2 prediction result.
       -lf <linearfold_result>     Path to file about linearfold prediction results.
       -o <output_folder>          Output folder
+    
+  additional_step
+    - additional_function
+    - Options:
+      -f  <final_form>      
+      -m  <blast_score_filter_add_gene>
+      -o <output_folder>          Output folder
+
 
   all
     - Execute all available processes sequentially.
@@ -386,6 +394,13 @@ main() {
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[m]}" "${opts[inf]}" "${opts[mr]}" "${opts[lf]}" "${opts[o]}")"
             run_script "${DIR}/final_form_production.sh" "$after_cleaning_code_path" "${paths[@]}"
+            ;;
+        
+        additional_step)
+            check_params f m
+            check_create_dir "${opts[o]}/middle_results"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[f]}" "${opts[m]}" "${opts[o]}")"
+            run_script "${DIR}/additional_step.sh" "$after_cleaning_code_path" "${paths[@]}"
             ;;
 
         all)
