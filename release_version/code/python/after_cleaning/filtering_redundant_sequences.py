@@ -7,6 +7,7 @@ import pandas as pd
 import argparse
 import sys
 import datetime
+from filter_mapping_result import find_best_blast_hits
 
 # conda_env = os.getenv('CONDA_DEFAULT_ENV')
 # if conda_env:
@@ -15,7 +16,7 @@ import datetime
 #     print("No Conda environment is active.")
 def check_id_duplicate(df, column_name):
     if df[column_name].duplicated().any():
-        raise ValueError(f"dataframe: '{df}' , its' column: '{column_to_check}' has duplicate values")
+        raise ValueError(f"dataframe: '{df}' , its' column: '{column_name}' has duplicate values")
 
 def create_umi_dataframe(umi_reads):
     data_umi = []
@@ -34,7 +35,7 @@ def group_sequences(df, umi_reads):
     ).reset_index()
     return grouped_df
 
-def filtering_fasta(seq_reads, umi_reads, output_fasta, output_csv):
+def filtering_fasta(seq_reads, umi_reads, csv_file, output_fasta, output_csv):
     ##first step: store fasta to a dataframe
     data_seq = []
     for index, record in enumerate(SeqIO.parse(seq_reads, "fasta")):
@@ -50,9 +51,20 @@ def filtering_fasta(seq_reads, umi_reads, output_fasta, output_csv):
         check_id_duplicate(merged_df, "qseqid")
     else:
         merged_df = df_fasta
-
-    grouped_df = group_sequences(merged_df, umi_reads)
+    print("umi_reads:",umi_reads)
+    print("merged_df:", merged_df)
+    csv_best_hits = find_best_blast_hits(csv_file)
+    print("csv_best_hits:",csv_best_hits)
+    blast_result = csv_best_hits[['qseqid', 'qcovhsp', 'pident']]
+    merged_df_more_information = pd.merge(merged_df, blast_result, on='qseqid', how='left')
+    print("merged_df_more_information:",merged_df_more_information)
+    merged_df_ordered = merged_df_more_information.sort_values(by=['qcovhsp', 'pident'], ascending=[False, False])
+    merged_df_ordered.reset_index(drop=True, inplace=True)
+    print("merged_df_ordered:",merged_df_ordered)
+    check_id_duplicate(merged_df_ordered, "qseqid")
+    grouped_df = group_sequences(merged_df_ordered, umi_reads)
     grouped_sorted_df = grouped_df.sort_values(by="representative_id")
+    print("grouped_sorted_df", grouped_sorted_df)
     check_id_duplicate(grouped_df, "sequence")
     grouped_sorted_df.to_csv(output_csv, index=False, header=True)
  
@@ -73,6 +85,8 @@ def parse_arguments():
                         type=str, help='after clean fasta file', default="none")
     parser.add_argument('-umi_reads', required=True,
                         type=str, help='umi file (whole file)', default="none")
+    parser.add_argument('-csv_file', required=True,
+                        type=str, help='blast_score_filter.csv in map genome folder', default="none")
     parser.add_argument('-output_fasta', required=True,
                         type=str, help='output fasta file path', default="none")
     parser.add_argument('-output_csv', required=True,
@@ -83,9 +97,9 @@ def parse_arguments():
 def main():
     args = parse_arguments()
 
-    if args.seq_reads and args.output_fasta and args.output_csv:
+    if args.seq_reads and args.output_fasta and args.csv_file and args.output_csv:
         # time_start_s = time.time()
-        filtering_fasta(args.seq_reads, args.umi_reads, args.output_fasta, args.output_csv)
+        filtering_fasta(args.seq_reads, args.umi_reads, args.csv_file, args.output_fasta, args.output_csv)
         # time_end_s = time.time()
         # time_c = time_end_s - time_start_s
         # print('time cost', time_c, 's')

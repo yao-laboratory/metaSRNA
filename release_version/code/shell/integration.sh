@@ -55,6 +55,7 @@ prepare_prediction_input() {
     python3 "${CODE_PATH_AFTER_CLEAN}/filtering_redundant_sequences.py" \
         -seq_reads "${output_folder}/prediction_temp_input.fasta" \
         -umi_reads "${umi_file}" \
+        -csv_file "${mapping_species}/blast_score_filter.txt" \
         -output_fasta "${output_folder}/prediction_input.fasta" \
         -output_csv "${output_folder}/redundant_sequences_information.csv"
 
