@@ -31,7 +31,7 @@ run_clean_command() {
     else
         python3 "${CODE_PATH}/clean_command.py" after_clean \
             -input "$INPUT" \
-            -output_path "${RESULTS}/middle_results/final_seq.fastq"
+            -output_path "${RESULTS}/middle_results/final_seq_before_cleanN.fastq"
     fi
 }
 
@@ -39,17 +39,22 @@ run_clean_command() {
 produce_seq() {
     local step1="${RESULTS}/middle_results/output_1_step1.fastq"
     local step2="${RESULTS}/middle_results/output_1_step2.fastq"
+    local temp_seq="${RESULTS}/middle_results/final_seq_before_cleanN.fastq"
     local final_seq="${RESULTS}/middle_results/final_seq.fastq"
     local output_folder="$RESULTS"
     if [[ "$FORMAT" != "clean" ]]; then
         if [[ -f "$step2" ]]; then
-            cat "$step1" "$step2" > "$final_seq"
+            cat "$step1" "$step2" > "$temp_seq"
             printf "Concatenated '%s' and '%s' into '%s'.\n" "$step1" "$step2" "$final_seq"
         else
-            cat "$step1" > "$final_seq"
+            cat "$step1" > "$temp_seq"
             printf "File '%s' does not exist, concatenating only '%s' into '%s' due to fault tolerance is 0.\n" "$step2" "$step1" "$final_seq"
         fi
     fi
+
+    python3 "${CODE_PATH}/clean_command.py" clean_N_seqs \
+        -input "$temp_seq" \
+        -output_path "$final_seq"
 
     python3 "${CODE_PATH}/filter_sequence_length.py" process_length \
         -input "$final_seq" \

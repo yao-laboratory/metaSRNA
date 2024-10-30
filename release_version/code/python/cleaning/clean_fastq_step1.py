@@ -15,9 +15,9 @@ def write_fastq(lines, temp_result, output_files, id, x_num):
             output_files[0].write(line2_w)
             line3_w = '+'+'\n'
             output_files[0].write(line3_w)
-            filter_q_line = re.sub("^£+", "", lines[3])
+            # filter_q_line = re.sub("^£+", "", lines[3])
             # print("fql", filter_q_line)
-            line4_w = filter_q_line[:len(temp_result[0])]+'\n'
+            line4_w = lines[3][:len(temp_result[0])]+'\n'
             output_files[0].write(line4_w)
         else:
             # print("i",i)
@@ -208,7 +208,8 @@ def clean_step1(information_list, input_file, output_files_step1, unmatched_file
                 #     break
                 # print("id2",id2,lines,len(lines),lines[0],lines[2])
                 if len(lines) == 4 and "@" in lines[0] and "+" in lines[2]:
-                    filter_line = re.sub("^N+|\s", "", lines[1])
+                    filter_line = re.sub("\s", "", lines[1])
+                    # filter_line = re.sub("^N+|\s", "", lines[1])
                     p_string = ""
                     for i in range(len(match_seq)):
                         p_string += r'(\w*?)' + match_seq[i]
@@ -224,8 +225,8 @@ def clean_step1(information_list, input_file, output_files_step1, unmatched_file
                         else:
                             p_string_part = ""
                             for i in range(len(match_seq) - 1):
-                                p_string_part += r'(\w*)' + match_seq[i]
-                            p_string_part += r'(\w*)'
+                                p_string_part += r'(\w*?)' + match_seq[i]
+                            p_string_part += r'(\w*?)'
                             # print(p_string_part)
 
                         if (find_patial_correct_pattern(lines, p_string_part, match_seq, filter_line,     

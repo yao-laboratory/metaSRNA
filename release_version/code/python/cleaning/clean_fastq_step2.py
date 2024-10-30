@@ -17,9 +17,9 @@ def write_one_record(lines, result, output_files, id_map, x_num):
             output_files[0].write(line2_w)
             line3_w = '+'+'\n'
             output_files[0].write(line3_w)
-            filter_q_line = re.sub("^£+", "", lines[3])
+            # filter_q_line = re.sub("^£+", "", lines[3])
             # print("fql", filter_q_line)
-            line4_w = filter_q_line[:len(result[0])]+'\n'
+            line4_w = lines[3][:len(result[0])]+'\n'
             output_files[0].write(line4_w)
             # print(line1_w,line2_w,line3_w,line4_w)
         else:
@@ -274,7 +274,8 @@ def clean_step2(information_list, input_file, output_file_step1, output_files_st
                     break
 
                 if len(lines) == 4 and "@" in lines[0] and "+" in lines[2]:
-                    filter_line = re.sub("^N+|\s", "", lines[1])
+                    filter_line = re.sub("\s", "", lines[1])
+                    # filter_line = re.sub("^N+|\s", "", lines[1])
 
                     if (find_all_pattern(lines, filter_line, information_list, output_files_step2, threshold, id_map)):
                         # print("find_all_pattern")

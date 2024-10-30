@@ -3,6 +3,9 @@ import time
 import re
 import os
 from io import StringIO
+from Bio import SeqIO
+from Bio.Seq import Seq
+from Bio.SeqRecord import SeqRecord
 from clean_fastq_step1 import clean_step1
 from clean_fastq_step2 import clean_step2
 
@@ -142,3 +145,27 @@ def after_clean_step(input_file, output_path):
                     line4_w = lines[3]+'\n'
                     output_file.write(line4_w)
 
+def clean_N_seqs(input_file, output_path):
+    with open(output_path, "w") as out_file:
+        new_index = 1  
+        # Iterate through all sequences in the input fastq file
+        for record in SeqIO.parse(input_file, "fastq"):
+            sequence = str(record.seq).replace('n', 'N')
+            trimmed_sequence = sequence.strip("N")
+            ##if N in the middle of the sequence, directly drop
+            if len(trimmed_sequence) == 0 or "N" in trimmed_sequence:
+                continue
+
+            new_record = SeqRecord(
+                Seq(trimmed_sequence),             
+                id=str(new_index),                         
+                description="",
+                letter_annotations={"phred_quality": record.letter_annotations["phred_quality"][(len(record.seq) - len(record.seq.lstrip("N"))):len(record.seq.rstrip("N"))]}
+            )
+            # Write the updated record to the output file
+            SeqIO.write(new_record, out_file, "fastq")
+            
+            # Increment the new index
+            new_index += 1
+
+    print(f"Processing complete. clean N in original FASTQ file saved as '{output_path}'.")
