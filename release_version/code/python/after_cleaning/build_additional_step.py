@@ -31,8 +31,9 @@ def save_all_data_to_bedfile(all_data_form, bed_file_path):
         chrome = row["qseqid"]
         start_axis = row["sstart"]
         end_axis = row["send"]
+        sequence = row["sequence"]
         data.append((chrome, start_axis,
-                    end_axis, "", "", "", "", ""))
+                    end_axis, sequence, "", "", "", ""))
 
     # write data to the bed file
     with open(bed_file_path, "w") as file:
@@ -88,9 +89,12 @@ def produce_form(final_form, mapping_with_genes_file, output_folder):
     df["result_merge_all_save"].to_csv(output_path_2, index=False)
 
     #step5
-    output_path_3 = os.path.join(output_folder, "all_sequence_results.bed")
+    output_path_3 = os.path.join(output_folder, "representative_sequence_results.bed")
     print(output_path_3)
-    save_all_data_to_bedfile(df["result_merge_all"],output_path_3)
+    save_all_data_to_bedfile(df["result_merge"],output_path_3)
+    output_path_4 = os.path.join(output_folder, "all_sequence_results.bed")
+    print(output_path_4)
+    save_all_data_to_bedfile(df["result_merge_all"],output_path_4)
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="build additional step")

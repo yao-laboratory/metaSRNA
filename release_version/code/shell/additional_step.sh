@@ -20,6 +20,10 @@ build_additional_step() {
         -input_final_form "${final_form}" \
         -input_mapping_with_genes_file "${mapping_with_genes_file}" \
         -output_folder "${output_folder}" 
+
+    python3 "${CODE_PATH_AFTER_CLEAN}/classify_mapping_patterns.py" \
+        -input_bedfile "${output_folder}/representative_sequence_results.bed" \
+        -output_folder "${output_folder}" 
 }
 
 build_additional_step "${FORM_RESULT}" "${MAPPING_WITH_GENES_FILE}" "${OUTPUT_FOLDER}"
