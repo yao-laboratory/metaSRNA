@@ -70,6 +70,7 @@ produce_seq() {
 # produce umi file
 produce_umi() {
     if [[ "$UMI_FLAG" != 0 ]]; then
+        echo "umi not 0"
         local umi_step1="${RESULTS}/middle_results/output_${UMI_FLAG}_step1.fastq"
         local umi_step2="${RESULTS}/middle_results/output_${UMI_FLAG}_step2.fastq"
         local final_umi="${RESULTS}/final_umi.fastq"

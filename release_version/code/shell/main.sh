@@ -293,18 +293,20 @@ main() {
 
     case "$program" in
         extract)
-            check_params r l o F umi
+            check_params r l o F
             if [ "${opts[F]}" != "clean" ]; then
                 check_params t1 t2
                 t1_param="${opts[t1]}"
                 t2_param="${opts[t2]}"
+                umi_param="${opts[umi]}"
             else
                 t1_param=""
                 t2_param=""
+                umi_param="0"
             fi
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[r]}" "${opts[o]}")"
-            run_script "${DIR}/run.sh" "$cleaning_code_path" "${opts[l]}" "${opts[F]}" "$t1_param" "$t2_param" "${opts[umi]}"  "${paths[@]}"
+            run_script "${DIR}/run.sh" "$cleaning_code_path" "${opts[l]}" "${opts[F]}" "$t1_param" "$t2_param" "$umi_param" "${paths[@]}"
             ;;
 
         detect_species)
