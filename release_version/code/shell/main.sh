@@ -29,6 +29,13 @@ usage() {
 Usage: $0 -p <program> [options]
 
 Programs and their Required Options:
+  preprocess
+    - Preprocess the raw input files.
+    - Options:
+      -r <raw_data>                       Path(Paths) to the raw data file(files, more than one file, paths use space to seperate)
+      -w <preprocess functions>           Two way to choose: "merge": merge two fastq file as one fastq file; "unzip": unzip fastq.gz file to fastq file
+      -o <output_folder>                  Output folder including (fastq file as extract input)
+      
   extract
     - Extract data from raw input files.
     - Options:
@@ -292,10 +299,25 @@ main() {
     local refprok_database=${RELEASE_DIR}/database/blast_refprok_database
 
     case "$program" in
+        preprocess)
+            check_params r w o
+            check_create_dir "${opts[o]}/middle_results"
+            IFS=',' read -r -a input_paths <<< "${opts[r]}"
+            printf "path_r: %s\n" "${opts[r]}"
+            printf "path: %s\n" "${input_paths[@]}"
+            expanded_paths=()
+            for path in "${input_paths[@]}"; do
+                abs_path_result=$(abs_path "$path")
+                printf "abs_path_result: %s\n" "$abs_path_result"
+                expanded_paths+=("$abs_path_result")
+            done
+            run_script "${DIR}/preprocess.sh" "$cleaning_code_path" "${opts[w]}" "$(abs_path "${opts[o]}")" "${#expanded_paths[@]}" "${expanded_paths[@]}"
+            ;;
+
         extract)
             check_params r l o F
             if [ "${opts[F]}" != "clean" ]; then
-                check_params t1 t2
+                check_params t1 t2 umi
                 t1_param="${opts[t1]}"
                 t2_param="${opts[t2]}"
                 umi_param="${opts[umi]}"
