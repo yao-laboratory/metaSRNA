@@ -22,7 +22,7 @@ build_additional_step() {
         -output_folder "${output_folder}" 
 
     python3 "${CODE_PATH_AFTER_CLEAN}/classify_mapping_patterns.py" \
-        -input_bedfile "${output_folder}/representative_sequence_results.bed" \
+        -input_bedfile "${output_folder}/sorted_representative_sequence_results.bed" \
         -output_folder "${output_folder}" 
 }
 
