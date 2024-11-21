@@ -12,20 +12,20 @@ TOP_NUM="$3"
 CLEAN_FASTA="$4"
 RESULTS="$5"
 
-TEMP_FOLDER="$RESULTS/middle_results"
-mkdir -p "$TEMP_FOLDER"mkdir -p "$TEMP_FOLDER"
-BLAST_REFPROK_MAPPING_FNA="$TEMP_FOLDER/ncbi_dataset_fna/ncbi_dataset/data"
+MIDDLE_FOLDER="$RESULTS/middle_results"
+# mkdir -p "$MIDDLE_FOLDER"mkdir -p "$MIDDLE_FOLDER"
+BLAST_REFPROK_MAPPING_FNA="$MIDDLE_FOLDER/ncbi_dataset_fna/ncbi_dataset/data"
 
 printf "Refprok Database: %s\nCode Path: %s\nClean Fasta: %s\nResults: %s\n" \
-  "$REFPROK_DATABASE" "$CODE_PATH" "$CLEAN_FASTA" "$RESULTS" >&2
+  "$REFPROK_DATABASE" "$CODE_PATH" "$CLEAN_FASTA" "$RESULTS"
 
 # run blastn
 run_blastn() {
-  local blast_output="$TEMP_FOLDER/blastn_refprok_evalue10.txt"
+  local blast_output="$MIDDLE_FOLDER/blastn_refprok_evalue10.txt"
   blastn -query "$CLEAN_FASTA" -db "${REFPROK_DATABASE}/ref_prok_rep_genomes" \
     -out "$blast_output" -num_threads 4 -evalue 10 \
     -outfmt "6 qseqid sacc sstart send evalue bitscore qcovhsp pident sseqid staxids sscinames sblastnames" \
-    -max_target_seqs 5 -max_hsps 3 -task "blastn"
+    -max_target_seqs 5 -max_hsps 1 -task "blastn"
   
   if [[ ! -s "$blast_output" ]]; then
     printf "BLASTn output is empty. Exiting.\n" >&2
@@ -37,7 +37,7 @@ run_blastn() {
 
 # Function to perform line count and unique sequence extraction
 process_blast_output() {
-  local blast_output="$TEMP_FOLDER/blastn_refprok_evalue10.txt"
+  local blast_output="$MIDDLE_FOLDER/blastn_refprok_evalue10.txt"
   local unique_seq_count
 
   printf "Processing BLAST output file: %s\n" "$blast_output"
@@ -56,12 +56,12 @@ run_species_classification() {
   printf "Total sequences: %s\n" "$num_sequences"
 
   python3 "${CODE_PATH}/blast_species_classification.py" \
-    -input_folder "$TEMP_FOLDER" \
+    -input_folder "$MIDDLE_FOLDER" \
     -total_sequence_number "$num_sequences" \
     -output_folder "$RESULTS"
 
   python3 "${CODE_PATH}/union_top_species_classification.py" \
-    -input_folder "$TEMP_FOLDER" \
+    -input_folder "$MIDDLE_FOLDER" \
     -top_count "$TOP_NUM" \
     -output_folder "$RESULTS"
 }
@@ -80,15 +80,15 @@ download_genomes() {
   printf "GCF numbers: %s\n" "$gcf_numbers"
 
   # Ensure dataset CLI is downloaded
-  if [[ ! -f "$TEMP_FOLDER/datasets" ]]; then
-    curl -o "$TEMP_FOLDER/datasets" 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets'
-    chmod 777 "$TEMP_FOLDER/datasets"
+  if [[ ! -f "$MIDDLE_FOLDER/datasets" ]]; then
+    curl -o "$MIDDLE_FOLDER/datasets" 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets'
+    chmod 777 "$MIDDLE_FOLDER/datasets"
   fi
 
-  "${TEMP_FOLDER}/datasets" download genome accession ${gcf_numbers} \
-    --include genome --filename "$TEMP_FOLDER/ncbi_dataset_fna.zip"
+  "${MIDDLE_FOLDER}/datasets" download genome accession ${gcf_numbers} \
+    --include genome --filename "$MIDDLE_FOLDER/ncbi_dataset_fna.zip"
 
-  unzip -o "$TEMP_FOLDER/ncbi_dataset_fna.zip" -d "$TEMP_FOLDER/ncbi_dataset_fna"
+  unzip -o "$MIDDLE_FOLDER/ncbi_dataset_fna.zip" -d "$MIDDLE_FOLDER/ncbi_dataset_fna"
 
   find "$BLAST_REFPROK_MAPPING_FNA" -type f -name "*.fna" -exec cat {} + > "$RESULTS/combined_gcf.fna"
 }
