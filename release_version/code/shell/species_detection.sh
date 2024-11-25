@@ -19,13 +19,24 @@ BLAST_REFPROK_MAPPING_FNA="$MIDDLE_FOLDER/ncbi_dataset_fna/ncbi_dataset/data"
 printf "Refprok Database: %s\nCode Path: %s\nClean Fasta: %s\nResults: %s\n" \
   "$REFPROK_DATABASE" "$CODE_PATH" "$CLEAN_FASTA" "$RESULTS"
 
+preprocess_random_select() {
+  local input_file="$CLEAN_FASTA"
+  local output_file="${MIDDLE_FOLDER}/random_selected_final_seq_12.fasta"
+
+  python3 "${CODE_PATH}/preprocess_random_select.py" \
+    -input_file "$input_file" \
+    -output_file "$output_file" \
+    -select_proportion_divisor 8
+}
+
 # run blastn
 run_blastn() {
   local blast_output="$MIDDLE_FOLDER/blastn_refprok_evalue10.txt"
-  blastn -query "$CLEAN_FASTA" -db "${REFPROK_DATABASE}/ref_prok_rep_genomes" \
+  local seleted_clean_fasta="${MIDDLE_FOLDER}/random_selected_final_seq_12.fasta"
+  blastn -query "$seleted_clean_fasta" -db "${REFPROK_DATABASE}/ref_prok_rep_genomes" \
     -out "$blast_output" -num_threads 4 -evalue 10 \
     -outfmt "6 qseqid sacc sstart send evalue bitscore qcovhsp pident sseqid staxids sscinames sblastnames" \
-    -max_target_seqs 5 -max_hsps 1 -task "blastn"
+    -max_target_seqs 1 -max_hsps 1 -task "blastn"
   
   if [[ ! -s "$blast_output" ]]; then
     printf "BLASTn output is empty. Exiting.\n" >&2
@@ -51,8 +62,8 @@ process_blast_output() {
 run_species_classification() {
   local num_sequences
   local species_output
-
-  num_sequences=$(wc -l $CLEAN_FASTA |awk '{print $1/2}')
+  local seleted_clean_fasta="${MIDDLE_FOLDER}/random_selected_final_seq_12.fasta"
+  num_sequences=$(wc -l $seleted_clean_fasta |awk '{print $1/2}')
   printf "Total sequences: %s\n" "$num_sequences"
 
   python3 "${CODE_PATH}/blast_species_classification.py" \
@@ -95,6 +106,7 @@ download_genomes() {
 
 # Main function to coordinate the script flow
 main() {
+  preprocess_random_select
   run_blastn
   process_blast_output
   run_species_classification
