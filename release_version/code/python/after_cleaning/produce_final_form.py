@@ -101,9 +101,11 @@ def produce_mirdeep2_results(input_mirdeep2_folder):
             seq_names_list = get_seqnames_from_mrd_file(mrd_file_path[0])
             if not seq_names_list:
                 return df_result
-            else:
+            else:  
                 mrd_fasta_path = os.path.join(input_mirdeep2_folder,"middle_results/reads_collapsed.fa")
                 if os.path.exists(mrd_fasta_path):
+                    print("seq_number:",seq_names_list)
+                    print("seq_sequence:",get_data_from_fasta(mrd_fasta_path, seq_names_list))
                     return get_data_from_fasta(mrd_fasta_path, seq_names_list)
                 else:
                     print("predict mirdeep2 tool has error, no fasta being found")
