@@ -5,6 +5,7 @@ import pandas as pd
 import subprocess
 import argparse
 import sys
+from Bio import Entrez
 
 
 def union_files(folder_path, top_cnt):
@@ -54,8 +55,7 @@ def union_files(folder_path, top_cnt):
     return df_unique
     # end mapping file
 
-
-def union_top_species(folder_path, top_cnt, output_folder):
+def union_top_species_old(folder_path, top_cnt, output_folder):
     df_read = union_files(folder_path, top_cnt)
     # print(df_read)
     # ####using command to add corresponding gcf number
@@ -76,6 +76,49 @@ def union_top_species(folder_path, top_cnt, output_folder):
         values = output.stdout.strip().split(' ')
         # print(values)
         df_autoget.loc[len(df_autoget)] = {'sacc': value, 'gcf': values[0] if len(values) > 0 else default_gcf}
+    print(df_autoget)
+    # print(f"{value}\t{output.stdout.strip()}")
+    df_autoget.to_csv(path.join(output_folder, 'mapping.csv'), sep="\t", index=False)
+
+def fetch_assembly_accession_from_dblink(sacc):
+    try:
+        # Fetch the sequence summary using Entrez.efetch
+        handle = Entrez.efetch(db="nucleotide", id=sacc, rettype="gb", retmode="text")
+        records = handle.read()  # Read the raw GenBank text
+        handle.close()
+        
+        # Search for the Assembly accession in the DBLINK section
+        for line in records.splitlines():
+            if line.strip().startswith("Assembly:"):
+                # Extract and return the Assembly accession
+                return line.split("Assembly:")[1].strip()
+        return None  # Return None if no Assembly accession is found
+    except Exception as e:
+        print(f"Error fetching AssemblyAccession for {sacc}: {e}")
+        return None
+
+def union_top_species(folder_path, top_cnt, output_folder):
+    df_read = union_files(folder_path, top_cnt)
+    # print(df_read)
+    # ####using command to add corresponding gcf number
+    # Get the last column of the DataFrame
+    last_column = df_read[df_read.columns[1]].apply(lambda x: str(x) + ".1")
+    # last_column = df_read[df_read.columns[1]].apply(lambda x: str(x))
+    df_autoget = pd.DataFrame(columns=['sacc', 'gcf'])
+    # Process each value in the last column
+    default_gcf = ""
+    for value in last_column:
+        # Run the shell command to get the RefSeq for each value
+        # command1 = f"module load entrez-direct/16.2"
+        # command2 = f"esearch -db assembly -query {value} | efetch -format docsum | xtract -pattern DocumentSummary -element AssemblyAccession"
+        # combined_command = f"{command1} && {command2}"
+        # output = subprocess.run(combined_command, shell=True, capture_output=True, text=True)
+        # # print(output.stdout.strip())
+        # # Split the line into two values
+        # values = output.stdout.strip().split(' ')
+        # print(values)
+        assembly_accession = fetch_assembly_accession_from_dblink(value)
+        df_autoget.loc[len(df_autoget)] = {'sacc': value, 'gcf': assembly_accession if assembly_accession else default_gcf}
     print(df_autoget)
     # print(f"{value}\t{output.stdout.strip()}")
     df_autoget.to_csv(path.join(output_folder, 'mapping.csv'), sep="\t", index=False)
