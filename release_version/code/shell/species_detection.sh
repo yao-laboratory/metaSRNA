@@ -13,8 +13,6 @@ CLEAN_FASTA="$4"
 RESULTS="$5"
 
 MIDDLE_FOLDER="$RESULTS/middle_results"
-# mkdir -p "$MIDDLE_FOLDER"mkdir -p "$MIDDLE_FOLDER"
-BLAST_REFPROK_MAPPING_FNA="$MIDDLE_FOLDER/ncbi_dataset_fna/ncbi_dataset/data"
 
 printf "Refprok Database: %s\nCode Path: %s\nClean Fasta: %s\nResults: %s\n" \
   "$REFPROK_DATABASE" "$CODE_PATH" "$CLEAN_FASTA" "$RESULTS"
@@ -26,7 +24,7 @@ preprocess_random_select() {
   python3 "${CODE_PATH}/preprocess_random_select.py" \
     -input_file "$input_file" \
     -output_file "$output_file" \
-    -select_proportion_divisor 8
+    -select_proportion_divisor 200
 }
 
 # run blastn
@@ -77,32 +75,6 @@ run_species_classification() {
     -output_folder "$RESULTS"
 }
 
-# Function to download genomes using accession numbers from mapping.csv
-download_genomes() {
-  local gcf_numbers
-
-  gcf_numbers=$(awk -F'\t' 'NR > 1 && $2 {print $2}' "$RESULTS/mapping.csv" | tr '\n' ' ')
-  
-  if [[ -z "$gcf_numbers" ]]; then
-    printf "No GCF numbers found in mapping.csv. Exiting.\n" >&2
-    return 1
-  fi
-  
-  printf "GCF numbers: %s\n" "$gcf_numbers"
-
-  # Ensure dataset CLI is downloaded
-  if [[ ! -f "$MIDDLE_FOLDER/datasets" ]]; then
-    curl -o "$MIDDLE_FOLDER/datasets" 'https://ftp.ncbi.nlm.nih.gov/pub/datasets/command-line/LATEST/linux-amd64/datasets'
-    chmod 777 "$MIDDLE_FOLDER/datasets"
-  fi
-
-  "${MIDDLE_FOLDER}/datasets" download genome accession ${gcf_numbers} \
-    --include genome --filename "$MIDDLE_FOLDER/ncbi_dataset_fna.zip"
-
-  unzip -o "$MIDDLE_FOLDER/ncbi_dataset_fna.zip" -d "$MIDDLE_FOLDER/ncbi_dataset_fna"
-
-  find "$BLAST_REFPROK_MAPPING_FNA" -type f -name "*.fna" -exec cat {} + > "$RESULTS/combined_gcf.fna"
-}
 
 # Main function to coordinate the script flow
 main() {
@@ -110,7 +82,6 @@ main() {
   run_blastn
   process_blast_output
   run_species_classification
-  download_genomes
 }
 
 # Execute main function

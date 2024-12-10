@@ -54,6 +54,14 @@ Programs and their Required Options:
       -t <retain how many top mapping species> Retain the top <n> mapping species' sacc and gcf values.
       -o <output_folder>    Output folder including (combined fna and (combined?) gtf files)
 
+  detect_species_additional_step
+    - download the top N species' FNA and GTF files, then combine them into combined.fna and combined.gtf.
+    - Options:
+      -c <gcf_files>.     File generated from detect_species step called mapping.csv.
+      --cn <gcf_numbers>  Specify all GCF numbers to download, separated by commas.
+      --of <output_folder>    Directory where combined.fna will be stored.
+      --og <output_folder>    Directory where combined.gtf will be stored.
+
   map_genome
     - Map genome sequences against a reference database.
     - Options:
@@ -112,9 +120,9 @@ Programs and their Required Options:
     - Options:
       -c  <clean_fasta_file>      Path to the clean FASTA file (after filtering length and removing duplicates)
       -m  <mapping_mirna_file>    Path to the miRNA mapping score file.
-      -inf <duplicate_sequences_information> Path to file about duplicate sequences information.
-      -mr <mirdeep_result>        Path to folder about mirdeep2 prediction result.
-      -lf <linearfold_result>     Path to file about linearfold prediction results.
+      --inf <duplicate_sequences_information> Path to file about duplicate sequences information.
+      --mr <mirdeep_result>        Path to folder about mirdeep2 prediction result.
+      --lf <linearfold_result>     Path to file about linearfold prediction results.
       -o <output_folder>          Output folder
     
   additional_step
@@ -282,6 +290,9 @@ main() {
                     inf) opts[inf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     mr)  opts[mr]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     lf)  opts[lf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    cn)  opts[cn]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    of)  opts[of]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    og)  opts[og]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     *)   log_error "Invalid option: --$OPTARG"; usage; exit 1 ;;
                 esac ;;
             h) usage ;;
@@ -297,6 +308,7 @@ main() {
     local cleaning_code_path=${PARENT_DIR}/python/cleaning
     local after_cleaning_code_path=${PARENT_DIR}/python/after_cleaning
     local refprok_database=${RELEASE_DIR}/database/blast_refprok_database
+    local param_flag=0
 
     case "$program" in
         preprocess)
@@ -337,7 +349,22 @@ main() {
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[o]}")"
             run_script "${DIR}/species_detection.sh" "$refprok_database" "$after_cleaning_code_path" "${opts[t]}" "${paths[@]}"
             ;;
-
+        
+        detect_species_additional_step)
+            check_params o of og
+            check_create_dir "${opts[o]}/middle_results"
+            if [[ -n "${opts[c]}" ]]; then
+                param_flag=0
+                IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[o]}" "${opts[of]}" "${opts[og]}")"
+                run_script "${DIR}/species_detection_additional_step.sh" "$param_flag" "${paths[@]}"
+            else
+                check_params cn
+                param_flag=1
+                IFS=' ' read -r -a paths <<< "$(abs_path "${opts[o]}" "${opts[of]}" "${opts[og]}")"
+                run_script "${DIR}/species_detection_additional_step.sh" "$param_flag" "${opts[cn]}" "${paths[@]}"
+            fi
+            ;;
+        
         map_genome)
             check_params f c d n o
             check_create_dir "${opts[d]}"
