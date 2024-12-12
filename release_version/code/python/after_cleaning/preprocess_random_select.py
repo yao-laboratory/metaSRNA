@@ -13,7 +13,10 @@ def preprocess_random_select(input_fasta, output_fasta, proportion_divisor):
     with open(output_fasta, "w") as output_handle:
         for i, record in enumerate(SeqIO.parse(input_fasta, "fasta")):
             if i in selected_indices:
-                SeqIO.write(record, output_handle, "fasta")
+                #ensure the sequence is written as a single line
+                sequence_str = str(record.seq).replace("\n", "")
+                output_handle.write(f">{record.id}\n{sequence_str}\n")
+
 
     print(f"Randomly selected {num_to_select} sequences saved to {output_fasta}.")
 

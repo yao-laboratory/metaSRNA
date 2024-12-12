@@ -34,7 +34,7 @@ run_blastn() {
   blastn -query "$seleted_clean_fasta" -db "${REFPROK_DATABASE}/ref_prok_rep_genomes" \
     -out "$blast_output" -num_threads 4 -evalue 10 \
     -outfmt "6 qseqid sacc sstart send evalue bitscore qcovhsp pident sseqid staxids sscinames sblastnames" \
-    -max_target_seqs 1 -max_hsps 1 -task "blastn"
+    -max_target_seqs 5 -max_hsps 1 -task "blastn"
   
   if [[ ! -s "$blast_output" ]]; then
     printf "BLASTn output is empty. Exiting.\n" >&2
