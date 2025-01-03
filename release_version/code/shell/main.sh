@@ -69,6 +69,8 @@ Programs and their Required Options:
       -c <clean_fasta_file>  Path to the cleaned FASTA file.
       -d <database>          Path to the database directory.
       -n <database_name>     Name of the species combine database.
+      --pq <qcovhsp>         percentage identity for query coverage per HSP (High Scoring Pair)in alignment blast.
+      --pp <pident>          percentage identity in the alignment blast.
       -o <output_folder>     Output folder including (filter score results about mapping top species database and analysis csv about percentage of mapping)
 
   quantify_genome
@@ -293,6 +295,8 @@ main() {
                     cn)  opts[cn]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     of)  opts[of]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     og)  opts[og]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    pq)  opts[pq]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    pp)  opts[pp]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     *)   log_error "Invalid option: --$OPTARG"; usage; exit 1 ;;
                 esac ;;
             h) usage ;;
@@ -366,10 +370,10 @@ main() {
             ;;
         
         map_genome)
-            check_params f c d n o
+            check_params f c d n o pq pp
             check_create_dir "${opts[d]}"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[f]}" "${opts[c]}" "${opts[d]}" "${opts[o]}")"
-            run_script "${DIR}/map_genome.sh" "${opts[n]}" "${paths[@]}"
+            run_script "${DIR}/map_genome.sh" "${opts[n]}" "${opts[pq]}" "${opts[pp]}" "${paths[@]}"
             ;;
 
         quantify_genome)

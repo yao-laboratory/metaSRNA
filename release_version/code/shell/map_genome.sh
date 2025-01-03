@@ -1,15 +1,36 @@
 #!/bin/bash
 
 database_name=$1
-blast_fna=$2
-clean_fa=$3
-database=$4
-results=$5
+qcovhsp=$2
+pident=$3
+blast_fna=$4
+clean_fa=$5
+database=$6
+results=$7
+
 
 module load blast/2.14
 module load biodata/1.0
 module load seqtk/1.2
 
+echo $qcovhsp
+echo $pident
+# Function to check if a value is an integer
+is_integer() {
+    local value=$1
+    [[ $value =~ ^[0-9]+$ ]]
+}
+
+# Validate qcovhsp and pident
+if ! is_integer "$qcovhsp"; then
+    printf "Error: qcovhsp (%s) is not a valid integer\n" "$qcovhsp" >&2
+    exit 1
+fi
+
+if ! is_integer "$pident"; then
+    printf "Error: pident (%s) is not a valid integer\n" "$pident" >&2
+    exit 1
+fi
 
 ###start: 1st step, make database
 # find $blast_refprok_mapping_fna -type f -exec cat {} + > $blast_refprok_mapping_fna/combined_gcf.fna
@@ -22,7 +43,7 @@ blastn -db ${database}/${database_name} -query $clean_fa -num_threads 4 -task bl
 # wc -l $blast_score/blast_score_1db_${bacteria}.txt
 # awk -F, '{print $1}' $blast_score/blast_score_1db_${bacteria}.txt | sort | uniq -c | wc -l
 # awk -F, '($7 >= 80 && $8 >= 90) {print $1}' $blast_score/blast_score_1db_${bacteria}.txt | sort | uniq -c | wc -l
-awk -F, '($7 >= 80 && $8 >= 90) {print $0}' $results/blast_score.txt  > $results/blast_score_filter.txt
+awk -F, '($7 >= $qcovhsp && $8 >= $pident) {print $0}' $results/blast_score.txt  > $results/blast_score_filter.txt
 
 number=$(awk -F, '($7 >= 80 && $8 >= 90) {print $1}' $results/blast_score_filter.txt | sort | uniq -c | wc -l)
 number_2=$(awk -F, '($7 >= 90 && $8 >= 90) {print $1}' $results/blast_score_filter.txt | sort | uniq -c | wc -l)
