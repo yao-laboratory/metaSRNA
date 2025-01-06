@@ -49,8 +49,9 @@ number=$(awk -F, '($7 >= 80 && $8 >= 90) {print $1}' $results/blast_score_filter
 number_2=$(awk -F, '($7 >= 90 && $8 >= 90) {print $1}' $results/blast_score_filter.txt | sort | uniq -c | wc -l)
 number_3=$(awk -F, '($7 >= 100 && $8 >= 90) {print $1}' $results/blast_score_filter.txt | sort | uniq -c | wc -l)
 number_4=$(awk -F, '($7 >= 100 && $8 >= 100) {print $1}' $results/blast_score_filter.txt | sort | uniq -c | wc -l)
-
+echo "Based on the paramter qcovhsp:$qcovhsp and pident:$pident you set, we save blast_score_fileter.txt based on this creteria." >> $results/genome_mapping_analysis.csv
 total_number=$(wc -l < $clean_fa | awk '{print $1/2}')
+echo "Except this, we can give you the standard mapping results overview as follows:" >> $results/genome_mapping_analysis.csv
 echo "mapping top species database number(qcovhsp=80,pident=90): $number" >> $results/genome_mapping_analysis.csv
 echo "mapping top species database number(qcovhsp=90,pident=90): $number_2" >> $results/genome_mapping_analysis.csv
 echo "mapping top species database number(qcovhsp=100,pident=90): $number_3" >> $results/genome_mapping_analysis.csv
