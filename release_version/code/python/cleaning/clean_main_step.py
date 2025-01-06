@@ -159,7 +159,7 @@ def after_clean_step(input_file, output_path):
 
 def clean_N_seqs(input_file, output_path):
     with open(output_path, "w") as out_file:
-        new_index = 1  
+        # new_index = 1  
         # Iterate through all sequences in the input fastq file
         for record in SeqIO.parse(input_file, "fastq"):
             sequence = str(record.seq).replace('n', 'N')
@@ -171,7 +171,7 @@ def clean_N_seqs(input_file, output_path):
 
             new_record = SeqRecord(
                 Seq(trimmed_sequence),             
-                id=str(new_index),                         
+                id=record.id,                         
                 description="",
                 letter_annotations={"phred_quality": record.letter_annotations["phred_quality"][(len(record.seq) - len(record.seq.lstrip("N"))):len(record.seq.rstrip("N"))]}
             )
@@ -179,6 +179,6 @@ def clean_N_seqs(input_file, output_path):
             SeqIO.write(new_record, out_file, "fastq")
             
             # Increment the new index
-            new_index += 1
+            # new_index += 1
 
     print(f"Processing complete. clean N in original FASTQ file saved as '{output_path}'.")
