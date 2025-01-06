@@ -5,7 +5,7 @@ import sys
 import subprocess
 
 
-def write_one_record(lines, result, output_files, id_map, x_num):
+def write_one_record(lines, result, umi_result, output_files, id_map, x_num):
     #print("store_result", result)
     # print("x_num",x_num, len(temp_result))
     for i in range(x_num):
@@ -19,7 +19,11 @@ def write_one_record(lines, result, output_files, id_map, x_num):
             output_files[0].write(line3_w)
             # filter_q_line = re.sub("^£+", "", lines[3])
             # print("fql", filter_q_line)
-            line4_w = lines[3][:len(result[0])]+'\n'
+            if umi_result:
+                line4_w = lines[3]+'\n'
+            else:
+                line4_w = lines[3][:len(result[0])]+'\n'
+            # line4_w = lines[3][:len(result[0])]+'\n'
             output_files[0].write(line4_w)
             # print(line1_w,line2_w,line3_w,line4_w)
         else:
@@ -32,6 +36,11 @@ def write_one_record(lines, result, output_files, id_map, x_num):
             else:
                 line_special = result[i] + '\n'
             output_files[i].write(line_special)
+    if umi_result:
+        line1_w = '@' + str(id_map) + '\n'
+        output_files[-1].write(line1_w)
+        line_special = umi_result + '\n'
+        output_files[-1].write(line_special)
             
 
 def compare_string(remaining_target_seq,required_target_seq,direction):
@@ -130,6 +139,8 @@ def find_pattern_combination(information_list, pattern):
             number_part1_star = 0
             number_1_star =  (len(match_seq[i]) - cnt) if choice[i] == 'left_characters' else 0
             number_1_x = (match_x_count[i+1] + len(match_seq[i]) - cnt) if choice[i] == 'left_characters' else (match_x_count[i+1])
+            # print("match_x_count[i+1]",match_x_count[i+1])
+            # print("len(match_seq[i])",len(match_seq[i]))
             #judge match_seq already the last one or not, in case beyond the boundary
             if (i + 1) < match_seq_number:
                 cnt_next =  5 if match_seq_count[i+1] > 5 else 1
@@ -172,14 +183,31 @@ def save_one_record(lines, final_result, threshold_minimum, output_files, id_map
         return False
     #save the final strings results to different files
     [match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num] = information_list
+    umi_result = ""
     # print("match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num",match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num)
     #print("x_num", x_num)
-    if match_x[0] != "*":
+    # if match_x[0] != "*":
+    #     # print(final_result[0])
+    #     final_result[0] = final_result[0][:match_x_count[0]]
+    #     # print(final_result[0])
+    # if 'X' not in match_x[i] and "*" in match_x[i]:
+    #     temp_result.append(result[i])
+    # !!!seperate umi situation only appears here
+    if "X" in match_x[0] and "*" in match_x[0]:
+        before_star, after_star = match_x[0].split('*')
+        start_num = before_star.count('X')
+        end_num = -after_star.count('X')
+        total_umi_num = before_star.count('X') + after_star.count('X')
+        if len(final_result[0]) <= total_umi_num:
+            return False
+        lines[3] = lines[3][:len(final_result[0])][start_num:end_num]
+        umi_result = final_result[0][:start_num] + final_result[0][end_num:]
+        final_result[0] = final_result[0][start_num:end_num]
+    elif "X" in match_x[0] and "*" not in match_x[0]:
         # print(final_result[0])
         final_result[0] = final_result[0][:match_x_count[0]]
-        # print(final_result[0])
-    # print("final_result", final_result)
-    write_one_record(lines, final_result, output_files, id_map, len(match_x))        
+        # print("final_result", final_result)
+    write_one_record(lines, final_result, umi_result, output_files, id_map, len(match_x))        
     return True 
 
 

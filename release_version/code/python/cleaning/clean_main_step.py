@@ -36,10 +36,16 @@ def analyze_format(fa_format):
     # x_count = find_start_pos(p_x)
     # star_count = find_start_pos(p_star)
     # seq_count = find_start_pos(p_seq)
+    # Convert pattern's small letter to big letter
+    fa_format = re.sub(r'x', 'X', fa_format)
+    fa_format = re.sub(r'a', 'A', fa_format)
+    fa_format = re.sub(r't', 'T', fa_format)
+    fa_format = re.sub(r'c', 'C', fa_format)
+    fa_format = re.sub(r'g', 'G', fa_format)
 
-    match_x = re.findall(r'[xX*]+', fa_format)
+    match_x = re.findall(r'[X*]+', fa_format)
     # match_star = re.findall(r'[*]+', fa_format)
-    match_seq = re.findall(r'[ATCGatcg]+', fa_format)
+    match_seq = re.findall(r'[ATCG]+', fa_format)
     match_x_count = [len(s) for s in match_x]
     # star_count = [len(s) for s in match_star]
     match_seq_count =[len(s) for s in match_seq]
@@ -70,14 +76,15 @@ def analyze_format(fa_format):
     # print(match_x)
     # print(match_star)
     # print(match_seq)
-    #print([x_count,match_x,star_count,match_star,seq_count,match_seq,file_num,file_seq_num])
+    print([match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num])
     return [match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num]
 
 def clean_start(input_file,fa_format):
     information_list = analyze_format(fa_format)
     file_num = information_list[-2]
+    num_files = int(information_list[-2]) if len(information_list) == 6 and str(information_list[-2]).isdigit() else 0
     seq_num = information_list[-1]
-    if (file_num == None) or (seq_num == None):
+    if (file_num == None) or (seq_num == None) or (num_files == 0):
         print("input sequence formatting wrong")
         return False
     # f = 'MEE-OMVs-1_S4_L001_R1_001.fastq'
@@ -95,6 +102,8 @@ def clean_main_step(input_file,output_filename,fa_format, tolerance, tail_tolera
         # output_files = []
         #find create a new folder
         output_files_step1 = [open(output_filename + f"_{i}_step1.fastq",'w') for i in range(1, int(information_list[-2])+1)]
+        if any('*' in item and 'X' in item for item in information_list[1]):
+            output_files_step1.append(open(output_filename + f"_step1_umi.fastq",'w'))
         unmatched_file_step1 = open(output_filename + f"_step1_unmatched.fastq",'w') 
         # print("2",unmatched_files)
         # sorted(output_files)
@@ -108,6 +117,8 @@ def clean_main_step(input_file,output_filename,fa_format, tolerance, tail_tolera
         print("cleaning_step 1 end.")
         if (int(tolerance) > 0):
             output_files_step2 = [open(output_filename + f"_{i}_step2.fastq",'w') for i in range(1, int(information_list[-2])+1)]
+            if any('*' in item and 'X' in item for item in information_list[1]):
+                output_files_step2.append(open(output_filename + f"_step2_umi.fastq",'w'))
             unmatched_file_step2 = open(output_filename + f"_unmatched.fastq",'w') 
             input_file = output_filename + f"_step1_unmatched.fastq"
             output_step1_firstfile = output_filename + f"_1_step1.fastq"
@@ -115,6 +126,7 @@ def clean_main_step(input_file,output_filename,fa_format, tolerance, tail_tolera
             #close the files    
             for i in range(len(output_files_step2)):
                 output_files_step2[i].close()
+            unmatched_file_step2.close()
             print("cleaning_step 2 finished.")
 
 def after_clean_step(input_file, output_path):
@@ -151,6 +163,7 @@ def clean_N_seqs(input_file, output_path):
         # Iterate through all sequences in the input fastq file
         for record in SeqIO.parse(input_file, "fastq"):
             sequence = str(record.seq).replace('n', 'N')
+            ##drop the start and end Ns in the sequences
             trimmed_sequence = sequence.strip("N")
             ##if N in the middle of the sequence, directly drop
             if len(trimmed_sequence) == 0 or "N" in trimmed_sequence:

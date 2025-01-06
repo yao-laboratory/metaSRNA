@@ -71,8 +71,15 @@ produce_seq() {
 produce_umi() {
     if [[ "$UMI_FLAG" != 0 ]]; then
         echo "umi not 0"
+        local middle_folder="${RESULTS}/middle_results"
         local umi_step1="${RESULTS}/middle_results/output_${UMI_FLAG}_step1.fastq"
         local umi_step2="${RESULTS}/middle_results/output_${UMI_FLAG}_step2.fastq"
+
+    if find "${middle_folder}" -name "*_step1_umi.fastq" -type f | grep -q . && find "${middle_folder}" -name "*_step2_umi.fastq" -type f | grep -q .; then
+        umi_step1=$(find "$middle_folder" -type f -name "*_step1_umi.fastq" -print -quit)
+        umi_step2=$(find "$middle_folder" -type f -name "*_step2_umi.fastq" -print -quit)
+    fi
+
         local final_umi="${RESULTS}/final_umi.fastq"
         local final_umi_fasta="${RESULTS}/final_umi.fasta"
 

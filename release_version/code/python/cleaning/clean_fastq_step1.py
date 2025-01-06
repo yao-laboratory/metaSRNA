@@ -4,7 +4,7 @@ from io import StringIO
 #import scipy
 #from skbio import TreeNode, read
 
-def write_fastq(lines, temp_result, output_files, id, x_num):
+def write_fastq(lines, temp_result, umi_result, output_files, id, x_num):
     # print("store_results",temp_result)
     # print("x_num",x_num, len(temp_result))
     for i in range(x_num):
@@ -17,7 +17,10 @@ def write_fastq(lines, temp_result, output_files, id, x_num):
             output_files[0].write(line3_w)
             # filter_q_line = re.sub("^£+", "", lines[3])
             # print("fql", filter_q_line)
-            line4_w = lines[3][:len(temp_result[0])]+'\n'
+            if umi_result:
+                line4_w = lines[3]+'\n'
+            else:
+                line4_w = lines[3][:len(temp_result[0])]+'\n'
             output_files[0].write(line4_w)
         else:
             # print("i",i)
@@ -29,6 +32,11 @@ def write_fastq(lines, temp_result, output_files, id, x_num):
             else:
                 line_special = temp_result[i] + '\n'
             output_files[i].write(line_special)
+    if umi_result:
+        line1_w = '@' + str(id) + '\n'
+        output_files[-1].write(line1_w)
+        line_special = umi_result + '\n'
+        output_files[-1].write(line_special)
             
         
 # def write_part1_fastq(temp_result, output_files):
@@ -43,21 +51,34 @@ def meet_formatting_requirement(lines, output_files, result, information_list, i
     # print("needed",lines, output_files, result, file_num)
     # print("original_line",lines[1])
     [match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num] = information_list
-    # print("information_list",[match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num])
+    #print("information_list",[match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num])
     temp_result = []
+    umi_result = ""
+
     # print("result[0]",result[0])
     # print("len(result)",len(result))
     if seq_num == 1:
         for i in range(x_num):
             num = match_x_count[i]
             # print(num,result[i])
-            if '*' not in match_x[i] :
+            if 'X' not in match_x[i] and "*" in match_x[i]:
+                temp_result.append(result[i])
+            # !!!seperate umi situation only appears here
+            elif "X" in match_x[i] and "*" in match_x[i]:
+                before_star, after_star = match_x[i].split('*')
+                start_num = before_star.count('X')
+                end_num = -after_star.count('X')
+                total_umi_num = before_star.count('X') + after_star.count('X')
+                if len(result[i]) <= total_umi_num:
+                    return False
+                temp_result.append(result[i][start_num:end_num])
+                lines[3] = lines[3][:len(result[i])][start_num:end_num]
+                umi_result = result[i][:start_num] + result[i][end_num:]
+            else:
                 if len(result[i]) < num:
                     return False
                 else:
                     temp_result.append(result[i][:num])
-            else:
-                temp_result.append(result[i])   
     elif seq_num == 2:
         for i in range(x_num):
             num = match_x_count[i]
@@ -97,19 +118,19 @@ def meet_formatting_requirement(lines, output_files, result, information_list, i
                 else:
                     temp_result.append(result[i])   
     
-    write_fastq(lines, temp_result, output_files, id, len(match_x))
+    write_fastq(lines, temp_result, umi_result, output_files, id, len(match_x))
     return True
 
 def find_all_correct_pattern(lines, p_string, filter_line, information_list, output_files, id):
     pattern = re.compile(p_string)
     result = pattern.findall(filter_line)
-    # print("p_string",p_string,filter_line, id2)
+    #print("p_string",p_string,"pattern",pattern,"flter_line",filter_line,"id", id)
     #print("1",pattern,filter_line, result)
     if (result and result[0]):
         #print("2")
         [match_x_count, match_x, match_seq_count, match_seq, x_num, seq_num] = information_list
         # print("result",result)
-        # print("result_0",result[0])
+        #print("result_0",result[0])
         if (meet_formatting_requirement(lines, output_files, result[0], information_list, id)):
             return True
     return False
