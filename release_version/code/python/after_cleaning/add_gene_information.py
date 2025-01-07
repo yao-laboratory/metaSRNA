@@ -56,7 +56,10 @@ def finding_one_score_line_gene(index_s, row_s, sorted_score_df, gtf_df, gtf_ind
 def add_gene(input_gtf, input_score, temp_folder, output_csv):
     gtf_df = pd.read_csv(input_gtf, sep="\t", header=None)
     gtf_df.columns = ["seqname", "source", "feature", "start", "end", "score", "strand", "frame", "attribute"]
-    gtf_df = gtf_df[(gtf_df["source"] == "RefSeq") & (gtf_df["feature"] == "gene")]
+    # print("gtf_df.head()",gtf_df.head())
+    gtf_df = gtf_df[gtf_df["source"].str.contains("RefSeq", case=False, na=False) & (gtf_df["feature"] == "gene")]
+    # print("gtf_df partial head()",gtf_df.head())
+    # gtf_df = gtf_df[(gtf_df["source"] == "RefSeq") & (gtf_df["feature"] == "gene")]
     #gtf needs reorder
     gtf_df.sort_values(by=['seqname', 'start', 'end'], ascending=[True, True, True], inplace=True)
     gtf_df.reset_index(drop=True, inplace=True)
@@ -78,6 +81,7 @@ def add_gene(input_gtf, input_score, temp_folder, output_csv):
     temp_final_csv = os.path.join(temp_folder, "blast_score_filter_add_gene_temp.csv")
     with open(temp_final_csv, 'w') as out_file:
         gtf_groups = gtf_df.groupby('seqname')
+        print("gtf_groups:",gtf_groups)
         mapping_score_groups = mapping_score_df.groupby('sacc')
         for contig, mapping_score_group in mapping_score_groups:
             if contig in gtf_groups.groups:
