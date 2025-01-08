@@ -22,13 +22,8 @@ is_integer() {
 }
 
 # Validate qcovhsp and pident
-if ! is_integer "$qcovhsp"; then
-    printf "Error: qcovhsp (%s) is not a valid integer\n" "$qcovhsp" >&2
-    exit 1
-fi
-
-if ! is_integer "$pident"; then
-    printf "Error: pident (%s) is not a valid integer\n" "$pident" >&2
+if ! is_integer "$qcovhsp" || ! is_integer "$pident"; then
+    printf "Error: qcovhsp (%s) or pident (%s) is not a valid integer\n" "$qcovhsp" "$pident" >&2
     exit 1
 fi
 

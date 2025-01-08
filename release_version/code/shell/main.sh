@@ -67,6 +67,8 @@ Programs and their Required Options:
     - Options:
       -f <fna_file>          Path to the FNA file.
       -c <clean_fasta_file>  Path to the cleaned FASTA file.
+      --sl <shortest_sequence_length> Require the shortest sequence length in cleaned fasta file.
+      --ll <longest_sequence_legnth> Require the longest sequence length in cleaned fasta file.
       -d <database>          Path to the database directory.
       -n <database_name>     Name of the species combine database.
       --pq <qcovhsp>         percentage identity for query coverage per HSP (High Scoring Pair)in alignment blast.
@@ -297,6 +299,8 @@ main() {
                     og)  opts[og]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     pq)  opts[pq]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     pp)  opts[pp]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    sl)  opts[sl]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    ll)  opts[ll]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     *)   log_error "Invalid option: --$OPTARG"; usage; exit 1 ;;
                 esac ;;
             h) usage ;;
@@ -399,11 +403,12 @@ main() {
             run_script "${DIR}/mirna_function_quantification.sh" "$after_cleaning_code_path" "${paths[@]}"
 
             ;;
+
         integrate)
-            check_params c s m u o
+            check_params c s m u o sl ll
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[s]}" "${opts[m]}" "${opts[u]}" "${opts[o]}")"
-            run_script "${DIR}/integration.sh" "$cleaning_code_path" "$after_cleaning_code_path" "${paths[@]}" 
+            run_script "${DIR}/integration.sh" "$cleaning_code_path" "$after_cleaning_code_path" "${opts[sl]}" "${opts[ll]}" "${paths[@]}" 
             ;;
 
         predict)
