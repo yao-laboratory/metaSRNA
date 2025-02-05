@@ -30,16 +30,21 @@ def save_all_data_to_bedfile(all_data_form, bed_file_path):
     # ("chr1", 2000, 6000, "Feature2", 0, "-"),
     for index, row in all_data_form.iterrows():
         chrome = row["sacc"]
-        start_pos = int(row["sstart"]) if int(row["sstart"]) <= int(row["send"]) else int(row["send"])
-        end_pos =  int(row["send"]) if int(row["sstart"]) <= int(row["send"]) else int(row["sstart"])
-        # start_axis = row["sstart"]
-        # end_axis = row["send"]
-        sequence = row["sequence"]
-        representative_id = row["qseqid"]
-        same_seq_ids = row["same_seq_ids"]
-        same_seq_count = row["same_seq_count"]
-        data.append((chrome, start_pos,
-                    end_pos, sequence, representative_id, same_seq_ids, same_seq_count))
+        if pd.notna(row["sstart"]) and pd.notna(row["send"]):
+            start_pos = int(row["sstart"]) if int(row["sstart"]) <= int(row["send"]) else int(row["send"])
+            end_pos =  int(row["send"]) if int(row["sstart"]) <= int(row["send"]) else int(row["sstart"])
+            # start_axis = row["sstart"]
+            # end_axis = row["send"]
+            sequence = row["sequence"]
+            representative_id = row["qseqid"]
+            same_seq_ids = row["same_seq_ids"]
+            same_seq_count = row["same_seq_count"]
+            data.append((chrome, start_pos,
+                        end_pos, sequence, representative_id, same_seq_ids, same_seq_count))
+        else:
+            print("attention")
+            print(index)
+            print(row["identity"],row["overlap_gene"],row["sstart"],row["send"])
 
     # write data to the bed file
     with open(bed_file_path, "w") as file:
