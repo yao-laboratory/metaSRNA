@@ -67,8 +67,6 @@ Programs and their Required Options:
     - Options:
       -f <fna_file>          Path to the FNA file.
       -c <clean_fasta_file>  Path to the cleaned FASTA file.
-      --sl <shortest_sequence_length> Require the shortest sequence length in cleaned fasta file.
-      --ll <longest_sequence_legnth> Require the longest sequence length in cleaned fasta file.
       -d <database>          Path to the database directory.
       -n <database_name>     Name of the species combine database.
       --pq <qcovhsp>         percentage identity for query coverage per HSP (High Scoring Pair)in alignment blast.
@@ -105,6 +103,8 @@ Programs and their Required Options:
       -s <species_file>      Path to the top species mapping score file.
       -m <mirna_file>        Path to the miRNA mapping score file.
       -u <umi_file>          Path to the UMI file.
+      --sl <shortest_sequence_length> Require the shortest sequence length in cleaned fasta file. If donnot use this parameter, default is 18.
+      --ll <longest_sequence_legnth> Require the longest sequence length in cleaned fasta file. If donnot use this parameter, default is 40.
       -o <output_folder>     Output folder including (analysis csv about how many seqid, percentage for overlapping)
 
   predict
@@ -405,7 +405,7 @@ main() {
             ;;
 
         integrate)
-            check_params c s m u o sl ll
+            check_params c s m u o
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[s]}" "${opts[m]}" "${opts[u]}" "${opts[o]}")"
             run_script "${DIR}/integration.sh" "$cleaning_code_path" "$after_cleaning_code_path" "${opts[sl]}" "${opts[ll]}" "${paths[@]}" 

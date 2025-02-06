@@ -24,9 +24,12 @@ is_integer() {
     local value=$1
     [[ $value =~ ^[0-9]+$ ]]
 }
+echo $MIN_LENGTH
 if ! is_integer "$MIN_LENGTH" || ! is_integer "$MAX_LENGTH"; then
-    printf "Error: shortest length (%s) or longest length (%s) of sequences is not a valid integer\n" "$MIN_LENGTH" "$MAX_LENGTH" >&2
-    exit 1
+    printf "Error: The shortest length (%s) or longest length (%s) of the sequence is not set or not a valid integer. Defaulting to 18 and 40.\n" "$MIN_LENGTH" "$MAX_LENGTH" >&2
+    MIN_LENGTH=18
+    MAX_LENGTH=40
+    # exit 1
 fi
 
 
