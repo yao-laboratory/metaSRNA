@@ -56,20 +56,22 @@ def produce_form(final_form, mapping_with_genes_file, output_folder):
     df_names = ["result_form", "result_mapping", "result_merge", "result_all_sequences","result_merge_all", "result_merge_all_save"]
     df = {name: pd.DataFrame() for name in df_names}
     #step1
-    df["result_form"] = pd.read_csv(final_form, sep=',')
+    df_result_form = pd.read_csv(final_form, sep=',')
+    df["result_form"] = df_result_form[(df_result_form['mirBase'] == 1) | (df_result_form['linearfold'] == 1) | (df_result_form['mirdeep2'] == 1)]
     df["result_form"] = df["result_form"].rename(columns={'representative_id': 'qseqid'})
     print("df['result_form']:\n", df["result_form"])
     check_id_duplicate(df['result_form'], "qseqid")
     #step2
     df_mapping = pd.read_csv(mapping_with_genes_file, sep=',', low_memory=False)
     df_mapping.columns = ["qseqid", "sacc", "sstart", "send", "evalue", "bitscore", "coverage", "identity", "overlap_gene"]
-    df_sorted = df_mapping.sort_values(by=['qseqid', 'coverage', 'identity'], ascending=[True, False, False])
+    df_filter = df_mapping[(df_mapping['coverage'] >= 90) & (df_mapping['identity'] >= 90)]
+    df_sorted = df_filter.sort_values(by=['qseqid', 'coverage', 'identity'], ascending=[True, False, False])
     df_unique_mapping = df_sorted.drop_duplicates(subset='qseqid', keep='first').reset_index(drop=True)
     df['result_mapping'] = df_unique_mapping[["qseqid", "sacc", "coverage", "identity", "overlap_gene", "sstart", "send"]]
     print("df['result_mapping']:\n", df["result_mapping"])
     check_id_duplicate(df['result_mapping'], "qseqid")
     #step3
-    df["result_merge"] = pd.merge(df["result_form"], df["result_mapping"], on='qseqid', how='left')
+    df["result_merge"] = pd.merge(df["result_form"], df["result_mapping"], on='qseqid', how='inner')
     move_column = df["result_merge"].pop("same_seq_ids")
     df["result_merge"]["same_seq_ids"] = move_column
     new_column_order = ['qseqid'] + [col for col in df["result_merge"].columns if col != 'qseqid']
@@ -118,7 +120,12 @@ def produce_form(final_form, mapping_with_genes_file, output_folder):
     bed = pybedtools.BedTool(bed_path)
     # Sort the BED entries
     sorted_bed = bed.sort()
-    # Save the sorted BED entries to a new file
+    ##after start
+    # # Filter out entries where the start position is < 700000
+    # filtered_bed = sorted_bed.filter(lambda x: int(x.start) >= 700000)
+    # # Save the sorted BED entries to a new file
+    # filtered_bed.saveas(sorted_bed_path)
+    ### after end
     sorted_bed.saveas(sorted_bed_path)
 
     # output_path_4 = os.path.join(output_folder, "all_sequence_results.bed")
