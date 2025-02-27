@@ -34,6 +34,7 @@ from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.vgg16 import preprocess_input
 from sklearn.metrics import silhouette_score
 import pandas as pd
+import logging
 # from keras.applications.vgg16 import VGG16, preprocess_input
 # from keras.preprocessing import image
 ##set tree depth limit is 5000
@@ -41,44 +42,73 @@ sys.setrecursionlimit(5000)
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 # Define the sliding window length
 SLIDING_WINDOW_LENGTH = 10000
-def process_bed_file_in_ranges(file_path, start=0, overlap=120):
+ABNORMAL_TOLERANCE_FACTOR = 10
+NATURAL_GAP_DISTANCE = 300
+OVERLAP_BETWEEN_WINDOWS = 120
+
+def process_bed_file_in_ranges(file_path):
     # read the BED file as a DataFrame
-    bed_df = pd.read_csv(file_path, sep='\t', header=None, names=['chrom', 'start', 'end', 'sequence', 'id', 'ids', 'same_seq_count'])
-    
-    max_position = bed_df['end'].max()
-    current_start = start
-    while current_start < max_position:
-        current_end = current_start + SLIDING_WINDOW_LENGTH
-        range_df = bed_df[(bed_df['start'] >= current_start) & (bed_df['end'] < current_end)]
-        # Keep track of the previous row's end
-        prev_end = None  
-        temp_positions = []
-        temp_sequences = []
-        temp_ids = []
-        #this for loop for each sliding window
-        for idx, row in range_df.iterrows():
-            if prev_end is not None and int(row['start']) < (int(prev_end) - 300):
-                print("reblock 300 gap")
-                # if the condition is met, yield the current collected values
-                yield temp_ids, temp_sequences, temp_positions, range_df.loc[:idx-1]
+    bed_whole_df = pd.read_csv(file_path, sep='\t', header=None, names=['chrom', 'start', 'end', 'sequence', 'id', 'ids', 'same_seq_count'])
+    ##iterate each chrom data
+    for chromsome in bed_whole_df['chrom'].unique():
+        bed_df = bed_whole_df[bed_whole_df['chrom'] == chromsome]
+        min_start_pos = bed_df['start'].min()
+        max_end_pos = bed_df['end'].max()
 
-                # reset collections and start a new range from this row
-                temp_positions = []
-                temp_sequences = []
-                temp_ids = []
+        # the number of rows in the DataFrame
+        num_rows = bed_df.shape[0] 
+        # the number of sliding windows
+        num_sliding_windows = (max_end_pos - min_start_pos) // SLIDING_WINDOW_LENGTH + 1
+        # average number of lines per window
+        avg_lines_per_window = num_rows // num_sliding_windows + 1
+        # maximum tolerance for line numbers
+        max_tolerance_lines = avg_lines_per_window * ABNORMAL_TOLERANCE_FACTOR
+        logging.info(f"max tolerance lines number are {max_tolerance_lines} ")
+        current_start = min_start_pos
+        ##deal with each sliding window's data
+        while current_start < max_end_pos:
+            current_end = current_start + SLIDING_WINDOW_LENGTH
+            max_prev_end = 0
+            range_df_temp = bed_df[(bed_df['start'] >= current_start) & (bed_df['end'] < current_end)]
+            # Keep track of the previous row's end
+            prev_end = None  
+            temp_positions = []
+            temp_sequences = []
+            temp_ids = []
+            range_df = pd.DataFrame()
+            if range_df_temp.shape[0] > max_tolerance_lines:
+                len_df_before = len(range_df_temp)
+                logging.info(f"before sampling: {len_df_before}")
+                range_df = range_df_temp.sample(n=min(max_tolerance_lines, len(range_df_temp)), random_state=42)
+                len_df_after = len(range_df)
+                logging.info(f"after sampling: {len_df_after}")
+            else:
+                range_df = range_df_temp
+            range_df = range_df.reset_index(drop=True)
+            #this for loop for each sliding window
+            for idx, row in range_df.iterrows():
+                ### seperate to different block if has natual gap
+                if max_prev_end is not None and (int(row['start']) - NATURAL_GAP_DISTANCE) > (int(max_prev_end)):
+                    logging.info(f"reblock when meet {NATURAL_GAP_DISTANCE} gap")
+                    yield temp_ids, temp_sequences, temp_positions, range_df.loc[:idx-1]
+                    # reset collections
+                    temp_positions = []
+                    temp_sequences = []
+                    temp_ids = []
 
-            temp_positions.append((int(row['start']), int(row['end'])))
-            temp_sequences.append(row['sequence'])
-            temp_ids.append(row['id'])
+                temp_positions.append((int(row['start']), int(row['end'])))
+                temp_sequences.append(row['sequence'])
+                temp_ids.append(row['id'])
 
-            prev_end = row['end']
+                max_prev_end = max(max_prev_end, int(row['end']))
+                
 
-        # yield the batch
-        if temp_positions:
-            yield temp_ids, temp_sequences, temp_positions, range_df
-        
-        # Move to the next range
-        current_start += SLIDING_WINDOW_LENGTH - overlap
+            # yield the rest batch
+            if temp_positions:
+                yield temp_ids, temp_sequences, temp_positions, range_df
+            
+            # Move to the next range
+            current_start += SLIDING_WINDOW_LENGTH - OVERLAP_BETWEEN_WINDOWS
 
 # def process_bed_file_in_ranges(file_path, start=0, overlap=120):
 #     # Read the BED file as a DataFrame
@@ -242,6 +272,9 @@ def add_qseqid_to_list(qseqid_list,member_ids):
 
 def compute_distance_matrix(sequences, positions, output_folder):
     num_seqs = len(sequences)
+    # if num_seqs == 1:
+    #     print("only one sequence available. Returning zero matrices.")
+    #     return np.zeros((1, 1)), np.zeros((1, 1), dtype=bool), np.zeros((1, 1), dtype=bool)
     dist_matrix = np.zeros((num_seqs, num_seqs))
     #dist_matrix = np.memmap(path.join(output_folder,"middle_results/dist_matrix.dat"), dtype=np.int32, mode='w+', shape=(num_seqs, num_seqs))
     ###old code start 
@@ -489,7 +522,7 @@ def unsupervise_learning(image_paths, output_folder):
 
     # Step 3: visualize the results
     plt.figure(figsize=(8, 6))
-    plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='viridis', s=50, alpha=0.6, label='Data Points')
+    plt.scatter(features_reduced[:, 0], features_reduced[:, 1], c=labels, cmap='viridis', s=50, alpha=0.6, label='Data Points')
     plt.scatter(centroids[:, 0], centroids[:, 1], c='red', s=200, marker='X', label='Cluster Centers')
     plt.title('KMeans Clustering')
     plt.xlabel('Feature 1')
@@ -538,10 +571,10 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, c
     singularity_cluster = []
     # other_situation = []
     ids_int = list(map(int, ids))
-    if overlap_matrix.size != 0:
+    if overlap_matrix.size >=2 :
         process_cluster_fully_overlap(tree.root, 0, overlap_matrix, ids_int, fully_overlapping_clusters)
         process_cluster_any_overlap(tree.root, 0, overlap_matrix, ids_int, partially_overlapping_clusters)
-    if compensatory_matrix.size != 0:
+    if compensatory_matrix.size >=2 :
         process_cluster_all_compensatory(tree.root, 0, compensatory_matrix, ids_int, fully_compensatory_clusters)
     process_cluster_singleton(tree.root, 0, ids_int, singularity_cluster)
     print("finished calculating tree 3 step",datetime.now() ) 
@@ -673,6 +706,13 @@ def final_step(list_dict, output_folder):
 
 
 def classify_pattern(bed_file, output_folder):
+    # print("1")
+    log_filename = os.path.join(output_folder, "my_log_file.log")  # Specify the log file
+    logging.basicConfig(
+        filename=log_filename,  # Log to this file
+        level=logging.INFO,  # Set log level
+        format="%(asctime)s - %(levelname)s - %(message)s"  # Define log format
+    )
     # # Example usage
     # positions = [
     #     [1, 5],  # Sequence 1
@@ -687,15 +727,18 @@ def classify_pattern(bed_file, output_folder):
     list_names = [ "dataset_1st_class", "dataset_compensatory", "dataset_3rd_class","dataset_4th_class",  
                    "output_file_path1", "output_file_path2", "output_file_path3", "output_file_path4" ]
     list_dict = {name: [] if 'dataset' in name else "" for name in list_names}
-    list_dict["output_file_path1"] = os.path.join(output_folder, "fully_overlapping_clusters.txt")
-    list_dict["output_file_path2"] = os.path.join(output_folder, "fully_compensatory_clusters.txt")
-    list_dict["output_file_path3"] = os.path.join(output_folder, "partially_overlapping_clusters.txt")
-    list_dict["output_file_path4"] = os.path.join(output_folder, "singularity_cluster.txt")
+    list_dict["output_file_path1"] = os.path.join(output_folder, f"fully_overlapping_clusters.txt")
+    list_dict["output_file_path2"] = os.path.join(output_folder, f"fully_compensatory_clusters.txt")
+    list_dict["output_file_path3"] = os.path.join(output_folder, f"partially_overlapping_clusters.txt")
+    list_dict["output_file_path4"] = os.path.join(output_folder, f"singularity_cluster.txt")
     # list_dict["output_file_path5"] = os.path.join(output_folder, "other_situation.txt")
     sliding_window_id = 0
+
     for ids, sequences, positions, bedfile_partial_df in process_bed_file_in_ranges(bed_file):
         # ids, sequences, positions = read_bed_file(bed_file)
         # print("1")
+        logging.info("1")
+        logging.info(bedfile_partial_df)
         if ids and sequences and positions and not bedfile_partial_df.empty:
             dist_matrix, overlap_matrix, compensatory_matrix = compute_distance_matrix(sequences, positions, output_folder)
             print("2")
