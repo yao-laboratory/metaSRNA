@@ -67,11 +67,12 @@ def process_bed_file_in_ranges(file_path):
         current_start = min_start_pos
         ##deal with each sliding window's data
         while current_start < max_end_pos:
+            logging.info("start a new sliding window")
             current_end = current_start + SLIDING_WINDOW_LENGTH
             max_prev_end = 0
             range_df_temp = bed_df[(bed_df['start'] >= current_start) & (bed_df['end'] < current_end)]
             # Keep track of the previous row's end
-            prev_end = None  
+            prev_end = 0  
             temp_positions = []
             temp_sequences = []
             temp_ids = []
@@ -84,28 +85,34 @@ def process_bed_file_in_ranges(file_path):
                 logging.info(f"after sampling: {len_df_after}")
             else:
                 range_df = range_df_temp
+            range_df = range_df.sort_values(by="start")
             range_df = range_df.reset_index(drop=True)
+            return_index = 0
             #this for loop for each sliding window
             for idx, row in range_df.iterrows():
                 ### seperate to different block if has natual gap
-                if max_prev_end is not None and (int(row['start']) - NATURAL_GAP_DISTANCE) > (int(max_prev_end)):
-                    logging.info(f"reblock when meet {NATURAL_GAP_DISTANCE} gap")
-                    yield temp_ids, temp_sequences, temp_positions, range_df.loc[:idx-1]
-                    # reset collections
-                    temp_positions = []
-                    temp_sequences = []
-                    temp_ids = []
+                if max_prev_end != 0:
+                    ###seperate blocks from big natual gap
+                    if (int(row['start']) - NATURAL_GAP_DISTANCE) > (int(max_prev_end))and idx > 100 and idx <(len(range_df)-100):
+                        logging.info(f"reblock when meet {NATURAL_GAP_DISTANCE} gap")
+                        return_df = range_df.loc[return_index:idx-1]
+                        yield temp_ids, temp_sequences, temp_positions, return_df
+                        # reset collections
+                        temp_sequences = []
+                        temp_ids = []
+                        temp_positions = []
+                        return_index = idx
 
                 temp_positions.append((int(row['start']), int(row['end'])))
                 temp_sequences.append(row['sequence'])
                 temp_ids.append(row['id'])
-
+                
                 max_prev_end = max(max_prev_end, int(row['end']))
                 
 
             # yield the rest batch
             if temp_positions:
-                yield temp_ids, temp_sequences, temp_positions, range_df
+                yield temp_ids, temp_sequences, temp_positions, range_df.loc[return_index:]
             
             # Move to the next range
             current_start += SLIDING_WINDOW_LENGTH - OVERLAP_BETWEEN_WINDOWS
@@ -272,9 +279,9 @@ def add_qseqid_to_list(qseqid_list,member_ids):
 
 def compute_distance_matrix(sequences, positions, output_folder):
     num_seqs = len(sequences)
-    # if num_seqs == 1:
-    #     print("only one sequence available. Returning zero matrices.")
-    #     return np.zeros((1, 1)), np.zeros((1, 1), dtype=bool), np.zeros((1, 1), dtype=bool)
+    if num_seqs == 1:
+        logging.info("only one sequence available, return zero matrix.")
+        return np.zeros((1, 1)), np.zeros((1, 1), dtype=bool), np.zeros((1, 1), dtype=bool)
     dist_matrix = np.zeros((num_seqs, num_seqs))
     #dist_matrix = np.memmap(path.join(output_folder,"middle_results/dist_matrix.dat"), dtype=np.int32, mode='w+', shape=(num_seqs, num_seqs))
     ###old code start 
@@ -578,6 +585,7 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, c
         process_cluster_all_compensatory(tree.root, 0, compensatory_matrix, ids_int, fully_compensatory_clusters)
     process_cluster_singleton(tree.root, 0, ids_int, singularity_cluster)
     print("finished calculating tree 3 step",datetime.now() ) 
+    logging.info("finished calculating tree 3 step")
 
     with open(list_dict["output_file_path1"], 'a') as output_file1:
         # output_file1.write("\n1st situation: every sequence overlap with each other: ")
@@ -644,6 +652,7 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, c
             output_file3.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed lines :\n{bed_lines_str}\n")
     
     with open(list_dict["output_file_path4"], 'a') as output_file4:
+        logging.info(f"singularity_cluster is {singularity_cluster}")
         #output_file4.write("\n4th situation: singularity sequence")
         for cluster_id, member_ids, indices in singularity_cluster:
             selected_bed_lines = get_bed_lines_by_indices(bedfile_partial_df, indices)
@@ -737,8 +746,10 @@ def classify_pattern(bed_file, output_folder):
     for ids, sequences, positions, bedfile_partial_df in process_bed_file_in_ranges(bed_file):
         # ids, sequences, positions = read_bed_file(bed_file)
         # print("1")
-        logging.info("1")
+        # logging.info("1")
         logging.info(bedfile_partial_df)
+        columns_to_show = ["start", "end"]  # Replace with the columns you want
+        logging.info(bedfile_partial_df.loc[:, columns_to_show])
         if ids and sequences and positions and not bedfile_partial_df.empty:
             dist_matrix, overlap_matrix, compensatory_matrix = compute_distance_matrix(sequences, positions, output_folder)
             print("2")
@@ -749,11 +760,10 @@ def classify_pattern(bed_file, output_folder):
                 analyze_tree(bedfile_partial_df, ids, dist_matrix, 'average', overlap_matrix, compensatory_matrix, output_folder, list_dict, sliding_window_id)
                 # print("3")
                 print("dist_matrix not empty")
+                sliding_window_id += 1
             else:
                 print("dist_matrix empty")
-                print(ids, sequences, positions, bedfile_partial_df, dist_matrix)
-
-            sliding_window_id += 1
+                print(ids, sequences, positions, bedfile_partial_df, dist_matrix)  
     
     final_step(list_dict, output_folder)
     print("4")
