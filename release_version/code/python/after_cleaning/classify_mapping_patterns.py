@@ -33,6 +33,7 @@ from tensorflow.keras.applications import VGG16
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.vgg16 import preprocess_input
 from sklearn.metrics import silhouette_score
+from intervaltree import Interval, IntervalTree
 import pandas as pd
 import logging
 # from keras.applications.vgg16 import VGG16, preprocess_input
@@ -93,7 +94,7 @@ def process_bed_file_in_ranges(file_path):
                 ### seperate to different block if has natual gap
                 if max_prev_end != 0:
                     ###seperate blocks from big natual gap
-                    if (int(row['start']) - NATURAL_GAP_DISTANCE) > (int(max_prev_end))and idx > 100 and idx <(len(range_df)-100):
+                    if (int(row['start']) - NATURAL_GAP_DISTANCE) > (int(max_prev_end)):
                         logging.info(f"reblock when meet {NATURAL_GAP_DISTANCE} gap")
                         return_df = range_df.loc[return_index:idx-1]
                         yield temp_ids, temp_sequences, temp_positions, return_df
@@ -264,12 +265,24 @@ def get_bed_lines_by_indices(bedfile_partial_df, indices):
     #     bed_lines = [line.strip() for line in file if line.strip()]
     # print("bedfile_partial_df before:",bedfile_partial_df)
     # error
+
     if max(indices) >= len(bedfile_partial_df):
         raise IndexError("index out of the bed lines")
 
     #get the lines according ids index 
-    # selected_lines = [bed_lines[i] for i in indices]
-    selected_lines = bedfile_partial_df.iloc[indices]
+    # selected_lines = [bedfile_partial_df[i] for i in indices]
+    # selected_lines = bedfile_partial_df.iloc[indices]
+    # logging.info("indices:")
+    # logging.info(indices)
+    # logging.info(selected_lines)
+    sorted_indices = sorted(indices)
+    # logging.info("sorted_indices:")
+    # logging.info(sorted_indices)
+    selected_lines = bedfile_partial_df.iloc[sorted_indices]
+    # selected_lines.sort_values(by=['chrom', 'start', 'end'], ascending=[True, True, True], inplace=True)
+    # logging.info("sorted selected_lines:")
+    logging.info(selected_lines)
+    # selected_lines = bedfile_partial_df.iloc[indices]
     return selected_lines
 
 def add_qseqid_to_list(qseqid_list,member_ids):
@@ -398,6 +411,7 @@ def process_cluster_any_overlap(root_clade, cluster_id, overlap_matrix, ids, par
                 stack.append((child_clade, current_cluster_id + 1))
 
 def process_cluster_singleton(root_clade, cluster_id, ids, singularity_cluster):
+    logging.info("start singleton tree")
     stack = [(root_clade, cluster_id)] 
 
     while stack:
@@ -418,42 +432,49 @@ def process_cluster_singleton(root_clade, cluster_id, ids, singularity_cluster):
             if not child_clade.is_terminal():
                 stack.append((child_clade, current_cluster_id + 1))
 
+# merge overlapping x-axis intervals using IntervalTree
+def merge_intervals(intervals):
+    tree = IntervalTree(Interval(start, end) for start, end in intervals)
+    tree.merge_overlaps()
+    return sorted((iv.begin, iv.end) for iv in tree)
+
 # function to plot each dataset
 def plot_dataset(dataset, dataset_idx, output_folder):
-    # if dataset_idx == 4:
-    # create a new figure with the same size
+    # convert each tuple (string values) into a list (integer values)
+    chrom = dataset[0][0]
+    dataset = [[int(start), int(end), int(line_count)] for chrom, start, end, line_count in dataset]
     plt.figure(figsize=(12, 4))
-    # calculate x-axis range
     x_min = min(int(item[0]) for item in dataset)
     x_max = max(int(item[1]) for item in dataset)
-    # plt.xlim(x_min-10, x_max+10)
-    #print(f"Dataset {dataset_idx}: xlim = ({x_min}, {x_max})")
+    parameter = 0.05
+    # create unique x-limits based on dataset
+    important_ranges = [(item[0], item[1]) for item in dataset]
+    # logging.info("dataset_idx")
+    # logging.info(dataset_idx)
+    # logging.info("draw data start")
+    # logging.info(dataset)
+    # logging.info(important_ranges)
+    merged_xlims = merge_intervals(important_ranges)
+    # logging.info(merged_xlims)
+    # logging.info("draw data end")
     distance = 0
-    #previous_end = None  # Keep track of the last endpoint
-
     for start, end, line_count in dataset:
-        y_positions = [distance + 0.1 * (i + 1) for i in range(int(line_count))]
+        if merged_xlims and int(start) == merged_xlims[0][0]:
+            # logging.info("start")
+            # logging.info(start)
+            distance = 0
+            merged_xlims.pop(0)
+        y_positions = [distance + parameter * (i + 1) for i in range(int(line_count))]
+        # print(y_positions)
+        # random_color = np.random.rand(3,)
         for y in y_positions:
-            # Include previous_end to ensure continuous stepping
-            # if previous_end is not None and previous_end != start:
-            #     plt.plot(sorted([previous_end, start]), [y, y], color='black', where='post')
-            # print(round(y,2),(int(start) - x_min)/(x_max-x_min),(int(end) - x_min)/(x_max-x_min))
-            plt.axhline(y=round(y,2), xmin=(int(start) - x_min)/(x_max-x_min), xmax=(int(end) - x_min)/(x_max-x_min), color="black")
-            # plt.plot([start, end], [y, y], color='black', where='post')
-        #previous_end = end  # Update the previous_end for the next region
+            plt.hlines(y, start, end, colors="black", linestyles='solid', linewidth=1)
         distance = y_positions[-1]
-    # plt.axis([x_min-10, x_max+10, 0, int(distance)+2])
-    # Set fixed range for the y-axis
-    # plt.ylim(0, int(distance)+2)
-    # print(f"Dataset {dataset_idx}: ylim = (0, {int(distance) + 2})")
-    # print("ylim:", 0, int(distance)+2)
-    ##new code start
-    #remove axes for a cleaner image
     plt.axis("off")
     plt.tight_layout()
 
     #save the plot to a buffer as a grayscale image
-    buffer_path = f"{output_folder}/temp_plot_{dataset_idx}.png"
+    buffer_path = f"{output_folder}/temp_plot_{dataset_idx}_{chrom}_{x_min}_{x_max}.png"
     plt.savefig(buffer_path, format='png', dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -462,7 +483,7 @@ def plot_dataset(dataset, dataset_idx, output_folder):
     binary_img = img.point(lambda x: 255 if x > 0 else 0, mode='1')
 
     #Save the binary image
-    binary_img.save(f"{output_folder}/binary_plot_{dataset_idx}.png")
+    binary_img.save(f"{output_folder}/binary_plot_{dataset_idx}_{chrom}_{x_min}_{x_max}.png")
     ##new code end
 
     # set labels and title for each figure
@@ -502,7 +523,7 @@ def unsupervise_learning(image_paths, output_folder):
         print(f"First feature shape: {features[0].shape}")
 
     # pca lower the dimension
-    n_components = min(len(features),len(binary_plot_files)) if min(len(features),len(binary_plot_files)) < 50 else 50
+    n_components = min(len(features),len(binary_plot_files)) if min(len(features),len(binary_plot_files)) < 5000 else 5000
     pca = PCA(n_components=n_components)
     features_reduced = pca.fit_transform(features)
 
@@ -551,6 +572,36 @@ def convert_labels_to_strings(tree):
             node.name = str(node.name)
     return tree
 
+def process_clusters(cluster_type, clusters, dataset_key, output_file_path, list_dict, bedfile_partial_df, sliding_window_id):
+    """
+    Processes different types of clusters and writes the results to a file.
+
+    Parameters:
+    - cluster_type: A string indicating the cluster type (for logging/debugging).
+    - clusters: The cluster data containing (cluster_id, member_ids, indices).
+    - dataset_key: The key in list_dict to store extracted data.
+    - output_file_path: The file path to write output.
+    - list_dict: Dictionary containing various datasets and file paths.
+    - bedfile_partial_df: DataFrame containing BED file data.
+    - sliding_window_id: Identifier for the sliding window.
+    """
+    with open(output_file_path, 'a') as output_file:
+        for cluster_id, member_ids, indices in clusters:
+            selected_bed_lines = get_bed_lines_by_indices(bedfile_partial_df, indices)
+            selected_lines = selected_bed_lines.apply(lambda row: '\t'.join(map(str, row)), axis=1).tolist()
+            
+            # extract relevant columns from each line
+            data = [(line.split('\t')[0], line.split('\t')[1], line.split('\t')[2], line.split('\t')[6]) for line in selected_lines]
+            if data:
+                list_dict[dataset_key].append(data)
+
+            # format output text
+            bed_lines_str = '\n'.join(selected_lines)
+            output_file.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed ids : {member_ids}")
+            output_file.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed lines :\n{bed_lines_str}\n")
+
+
+
 def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, compensatory_matrix, output_folder, list_dict, sliding_window_id):
     # def analyze_tree(output_folder):
     condensed_dist_matrix = squareform(dist_matrix)
@@ -587,83 +638,27 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, c
     print("finished calculating tree 3 step",datetime.now() ) 
     logging.info("finished calculating tree 3 step")
 
-    with open(list_dict["output_file_path1"], 'a') as output_file1:
-        # output_file1.write("\n1st situation: every sequence overlap with each other: ")
-        for cluster_id, member_ids, indices in fully_overlapping_clusters:
-            selected_bed_lines = get_bed_lines_by_indices(bedfile_partial_df, indices)
-            sorted_selected_lines = selected_bed_lines.apply(lambda row: '\t'.join(map(str, row)), axis=1).tolist()
-            #print("sorted_selected_lines", sorted_selected_lines)
-            # sorted_selected_lines = sorted(selected_bed_lines, key=lambda line: int(line.split('\t')[1]))
-            data = [(line.split('\t')[1], line.split('\t')[2], line.split('\t')[6]) for line in sorted_selected_lines]
-            if data:
-                list_dict["dataset_1st_class"].append(data)
-            bed_lines_str = '\n'.join(sorted_selected_lines)
-            output_file1.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed ids : {member_ids}")
-            output_file1.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed lines :\n{bed_lines_str}\n")
-        # for idx, dataset in enumerate(dataset_1st_class):
-        #     plot_dataset(dataset, idx, output_folder)
-    
-    with open(list_dict["output_file_path2"], 'a') as output_file2:
-        # output_file2.write("\n#2nd situation: every sequence has a compensatory sequence:")
-        # Read the CSV file
-        # df = pd.read_csv(os.path.join(output_folder, "mirdeep2_qseqid_list.csv"))
-        # mirdeep2_qseqid_list = df['qseqid'].tolist()
-        # print(mirdeep2_qseqid_list)
-        # qseqid_list = []
-        for cluster_id, member_ids, indices in fully_compensatory_clusters:
-            selected_bed_lines = get_bed_lines_by_indices(bedfile_partial_df, indices)
-            sorted_selected_lines = selected_bed_lines.apply(lambda row: '\t'.join(map(str, row)), axis=1).tolist()
-            # sorted_selected_lines = sorted(selected_bed_lines, key=lambda line: int(line.split('\t')[1]))
-            data = [(line.split('\t')[1], line.split('\t')[2], line.split('\t')[6]) for line in sorted_selected_lines]
-            if data:
-                list_dict["dataset_compensatory"].append(data)
-            bed_lines_str = '\n'.join(sorted_selected_lines)
-            # add_qseqid_to_list(qseqid_list, member_ids)
-            member_ids_print = [int(x) for x in member_ids]
-            output_file2.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, member_ids:/in this cluster's all bed ids :{sorted(member_ids_print)}, indices:{sorted(indices)}")
-            output_file2.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed lines :\n{bed_lines_str}\n")
-        # # Convert lists to sets and find the intersection
-        # qseqid_list.sort()
-        # intersection = set(mirdeep2_qseqid_list) & set(qseqid_list)
-        # # Calculate the overlap rate
-        # overlap_rate = 0
-        # if len(mirdeep2_qseqid_list) > 0:
-        #     overlap_rate = len(intersection) / len(mirdeep2_qseqid_list) # Relative to the smaller list
-        # else:
-        #     print("len(mirdeep2_qseqid_list) = 0")
-        #     overlap_rate = -1
-        # overlap_count = len(intersection)
-        # output_file2.write(f"\nmirdeep2_qseqid_list: {mirdeep2_qseqid_list}\n qseqid_list:{qseqid_list}\n")
-        # output_file2.write(f"\nmirdeep2_qseqid_list count: {len(mirdeep2_qseqid_list)}\n qseqid_list count:{len(qseqid_list)}\n")
-        # output_file2.write(f"\nmirdeep2 qseqid including count: {overlap_count:.2f}, including qseqid: {intersection},mirdeep2 qseqid including rate: {overlap_rate * 100:.2f}%\n")
-        # # # Plot each dataset in separate figures
+    # Call the function for each cluster type
+    process_clusters("Full Overlap", fully_overlapping_clusters, "dataset_full_overlap", list_dict["output_file_full_overlap"], list_dict, bedfile_partial_df, sliding_window_id)
+    process_clusters("Compensatory", fully_compensatory_clusters, "dataset_compensatory", list_dict["output_file_compensatory"], list_dict, bedfile_partial_df, sliding_window_id)
+    process_clusters("Partial Overlap", partially_overlapping_clusters, "dataset_partial_overlap", list_dict["output_file_partial_overlap"], list_dict, bedfile_partial_df, sliding_window_id)
+    process_clusters("Singleton", singularity_cluster, "dataset_singleton", list_dict["output_file_singleton"], list_dict, bedfile_partial_df, sliding_window_id)
+    # # Convert lists to sets and find the intersection
+    # qseqid_list.sort()
+    # intersection = set(mirdeep2_qseqid_list) & set(qseqid_list)
+    # # Calculate the overlap rate
+    # overlap_rate = 0
+    # if len(mirdeep2_qseqid_list) > 0:
+    #     overlap_rate = len(intersection) / len(mirdeep2_qseqid_list) # Relative to the smaller list
+    # else:
+    #     print("len(mirdeep2_qseqid_list) = 0")
+    #     overlap_rate = -1
+    # overlap_count = len(intersection)
+    # output_file2.write(f"\nmirdeep2_qseqid_list: {mirdeep2_qseqid_list}\n qseqid_list:{qseqid_list}\n")
+    # output_file2.write(f"\nmirdeep2_qseqid_list count: {len(mirdeep2_qseqid_list)}\n qseqid_list count:{len(qseqid_list)}\n")
+    # output_file2.write(f"\nmirdeep2 qseqid including count: {overlap_count:.2f}, including qseqid: {intersection},mirdeep2 qseqid including rate: {overlap_rate * 100:.2f}%\n")
+    # # # Plot each dataset in separate figures
 
-    with open(list_dict["output_file_path3"], 'a') as output_file3:
-        #output_file3.write("\n3rd situation: every sequence at least overlap with one sequence")
-        for cluster_id, member_ids, indices in partially_overlapping_clusters:
-            selected_bed_lines = get_bed_lines_by_indices(bedfile_partial_df, indices)
-            sorted_selected_lines = selected_bed_lines.apply(lambda row: '\t'.join(map(str, row)), axis=1).tolist()
-            # sorted_selected_lines = sorted(selected_bed_lines, key=lambda line: int(line.split('\t')[1]))
-            data = [(line.split('\t')[1], line.split('\t')[2], line.split('\t')[6]) for line in sorted_selected_lines]
-            if data:
-                list_dict["dataset_3rd_class"].append(data)
-            bed_lines_str = '\n'.join(sorted_selected_lines)
-            output_file3.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed ids : {member_ids}")
-            output_file3.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed lines :\n{bed_lines_str}\n")
-    
-    with open(list_dict["output_file_path4"], 'a') as output_file4:
-        logging.info(f"singularity_cluster is {singularity_cluster}")
-        #output_file4.write("\n4th situation: singularity sequence")
-        for cluster_id, member_ids, indices in singularity_cluster:
-            selected_bed_lines = get_bed_lines_by_indices(bedfile_partial_df, indices)
-            sorted_selected_lines = selected_bed_lines.apply(lambda row: '\t'.join(map(str, row)), axis=1).tolist()
-            # sorted_selected_lines = sorted(selected_bed_lines, key=lambda line: int(line.split('\t')[1]))
-            data = [(line.split('\t')[1], line.split('\t')[2], line.split('\t')[6]) for line in sorted_selected_lines]
-            if data:
-                list_dict["dataset_4th_class"].append(data)
-            bed_lines_str = '\n'.join(sorted_selected_lines)
-            output_file4.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed ids : {member_ids}")
-            output_file4.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed lines :\n{bed_lines_str}\n")
 
 def final_step(list_dict, output_folder):
     tmp_output_folder = "/tmp/mzhou10/image_results"
@@ -677,7 +672,7 @@ def final_step(list_dict, output_folder):
         print(f"At the beginning, the folder {tmp_output_folder} is not readable.")
         sys.exit(1)
     
-    combined_dataset = list_dict["dataset_1st_class"] + list_dict["dataset_compensatory"] + list_dict["dataset_3rd_class"] + list_dict["dataset_4th_class"]
+    combined_dataset = list_dict["dataset_full_overlap"] + list_dict["dataset_compensatory"] + list_dict["dataset_partial_overlap"] + list_dict["dataset_singleton"]
     if combined_dataset:
         for idx, dataset in enumerate(combined_dataset):
             plot_dataset(dataset, idx, tmp_output_folder)
@@ -733,13 +728,13 @@ def classify_pattern(bed_file, output_folder):
     # print(gap_matrix)
     ##! need add slide window way to read bed file
     # write the classification results
-    list_names = [ "dataset_1st_class", "dataset_compensatory", "dataset_3rd_class","dataset_4th_class",  
-                   "output_file_path1", "output_file_path2", "output_file_path3", "output_file_path4" ]
+    list_names = [ "dataset_full_overlap", "dataset_compensatory", "dataset_partial_overlap","dataset_singleton",  
+                   "output_file_full_overlap", "output_file_compensatory", "output_file_partial_overlap", "output_file_singleton" ]
     list_dict = {name: [] if 'dataset' in name else "" for name in list_names}
-    list_dict["output_file_path1"] = os.path.join(output_folder, f"fully_overlapping_clusters.txt")
-    list_dict["output_file_path2"] = os.path.join(output_folder, f"fully_compensatory_clusters.txt")
-    list_dict["output_file_path3"] = os.path.join(output_folder, f"partially_overlapping_clusters.txt")
-    list_dict["output_file_path4"] = os.path.join(output_folder, f"singularity_cluster.txt")
+    list_dict["output_file_full_overlap"] = os.path.join(output_folder, f"fully_overlapping_clusters.txt")
+    list_dict["output_file_compensatory"] = os.path.join(output_folder, f"fully_compensatory_clusters.txt")
+    list_dict["output_file_partial_overlap"] = os.path.join(output_folder, f"partially_overlapping_clusters.txt")
+    list_dict["output_file_singleton"] = os.path.join(output_folder, f"singularity_cluster.txt")
     # list_dict["output_file_path5"] = os.path.join(output_folder, "other_situation.txt")
     sliding_window_id = 0
 
