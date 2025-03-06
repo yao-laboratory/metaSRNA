@@ -45,10 +45,15 @@ def save_all_data_to_bedfile(all_data_form, bed_file_path):
             print("attention")
             print(index)
             print(row["identity"],row["overlap_gene"],row["sstart"],row["send"])
+    # convert to DataFrame with column names
+    df = pd.DataFrame(data, columns=['chrome', 'start', 'end','sequence','id','same_ids','same_seq_count'])
+    df.sort_values(by=['chrome', 'start', 'end'], ascending=[True, True, True], inplace=True)
+    sorted_data = []
+    sorted_data = df.values.tolist()
 
     # write data to the bed file
     with open(bed_file_path, "w") as file:
-        for line in data:
+        for line in sorted_data:
             file.write("\t".join(map(str, line)) + "\n")
 
 def produce_form(final_form, mapping_with_genes_file, output_folder):
@@ -79,6 +84,7 @@ def produce_form(final_form, mapping_with_genes_file, output_folder):
     df["result_merge"]['same_seq_count'] = df["result_merge"]['same_seq_ids'].apply(lambda x: len(x.split('|')))
     check_id_duplicate(df['result_merge'], "qseqid")
     print("df['result_merge']:\n", df["result_merge"])
+    print(df["result_merge"].columns)
     
     result_csv = os.path.join(output_folder, "representative_sequence_results.csv")
     print(result_csv)
@@ -112,21 +118,21 @@ def produce_form(final_form, mapping_with_genes_file, output_folder):
     # df["result_merge_all_save"].to_csv(output_path_2, index=False)
 
     #step5
-    bed_path = os.path.join(output_folder, "representative_sequence_results.bed")
-    print(bed_path)
+    bed_path = os.path.join(output_folder, "sorted_representative_sequence_results.bed")
+    # df["result_merge"].sort_values(by=['sacc', 'sstart', 'send'], ascending=[True, True, True], inplace=True)
     save_all_data_to_bedfile(df["result_merge"], bed_path)
-    sorted_bed_path = os.path.join(output_folder, "sorted_representative_sequence_results.bed")
+    # sorted_bed_path = os.path.join(output_folder, "sorted_representative_sequence_results.bed")
     # Create a BedTool object from the input BED file
-    bed = pybedtools.BedTool(bed_path)
-    # Sort the BED entries
-    sorted_bed = bed.sort()
+    # bed = pybedtools.BedTool(bed_path)
+    # # Sort the BED entries
+    # sorted_bed = bed.sort()
     ##after start
     # # Filter out entries where the start position is < 700000
     # filtered_bed = sorted_bed.filter(lambda x: int(x.start) >= 700000)
     # # Save the sorted BED entries to a new file
     # filtered_bed.saveas(sorted_bed_path)
     ### after end
-    sorted_bed.saveas(sorted_bed_path)
+    # sorted_bed.saveas(sorted_bed_path)
 
     # output_path_4 = os.path.join(output_folder, "all_sequence_results.bed")
     # print(output_path_4)
