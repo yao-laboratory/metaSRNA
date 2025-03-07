@@ -606,12 +606,16 @@ def process_clusters(cluster_type, clusters, dataset_key, output_file_path, list
 
 def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, compensatory_matrix, output_folder, list_dict, sliding_window_id):
     # def analyze_tree(output_folder):
-    condensed_dist_matrix = squareform(dist_matrix)
-    if condensed_dist_matrix.size == 0:
-        return
-    Z = linkage(condensed_dist_matrix, method=method)
-    #save tree
-    tree = TreeNode.from_linkage_matrix(Z, id_list=ids)
+    # Convert to condensed distance matrix
+    if dist_matrix.size == 1:
+        logging.info("Only one element in dis_matrix, creating a single-node tree.")
+        tree = TreeNode(name=ids[0])  # Single-node tree
+    else:
+        condensed_dist_matrix = squareform(dist_matrix)
+        Z = linkage(condensed_dist_matrix, method=method)
+        #save tree
+        tree = TreeNode.from_linkage_matrix(Z, id_list=ids)
+    
     tree = convert_labels_to_strings(tree)
     tree_path = os.path.join(output_folder, "tree.newick")
     # # check if the file exists and delete it
