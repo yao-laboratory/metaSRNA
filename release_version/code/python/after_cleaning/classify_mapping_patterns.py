@@ -29,18 +29,20 @@ from sklearn.decomposition import PCA
 from PIL import Image
 
 from sklearn.metrics.pairwise import euclidean_distances
-from tensorflow.keras.applications import VGG16
-from tensorflow.keras.preprocessing import image
-from tensorflow.keras.applications.vgg16 import preprocess_input
 from sklearn.metrics import silhouette_score
 from intervaltree import Interval, IntervalTree
 import pandas as pd
 import logging
-# from keras.applications.vgg16 import VGG16, preprocess_input
-# from keras.preprocessing import image
+
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+from tensorflow.keras.applications import VGG16
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.applications.vgg16 import preprocess_input
+
 ##set tree depth limit is 5000
 sys.setrecursionlimit(5000)
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
 # Define the sliding window length
 SLIDING_WINDOW_LENGTH = 10000
 ABNORMAL_TOLERANCE_FACTOR = 10
@@ -474,7 +476,7 @@ def plot_dataset(dataset, dataset_idx, output_folder):
     plt.tight_layout()
 
     #save the plot to a buffer as a grayscale image
-    buffer_path = f"{output_folder}/temp_plot_{dataset_idx}_{chrom}_{x_min}_{x_max}.png"
+    buffer_path = f"{output_folder}/temp_plot_{dataset_idx}_{x_min}_{x_max}_{chrom}.png"
     plt.savefig(buffer_path, format='png', dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -483,7 +485,7 @@ def plot_dataset(dataset, dataset_idx, output_folder):
     binary_img = img.point(lambda x: 255 if x > 0 else 0, mode='1')
 
     #Save the binary image
-    binary_img.save(f"{output_folder}/binary_plot_{dataset_idx}_{chrom}_{x_min}_{x_max}.png")
+    binary_img.save(f"{output_folder}/binary_plot_{dataset_idx}_{x_min}_{x_max}_{chrom}.png")
     ##new code end
 
     # set labels and title for each figure
@@ -704,9 +706,9 @@ def final_step(list_dict, output_folder):
     # Check if the folder is readable after removal
     if os.access(tmp_output_folder, os.R_OK):
         print(f"After finishing, the folder {tmp_output_folder} is readable.")
+        sys.exit(1)
     else:
         print(f"After finishing, the folder {tmp_output_folder} is not readable.")
-        sys.exit(1)
 
 
 def classify_pattern(bed_file, output_folder):
