@@ -573,6 +573,12 @@ def convert_labels_to_strings(tree):
         if node.name is not None:
             node.name = str(node.name)
     return tree
+def get_cluster_variables(data):
+    df = pd.DataFrame(data, columns=['chrom', 'start', 'end', 'others'])
+    chrom = df.iloc[0]['chrom']  
+    start = df['start'].min()  
+    end = df['end'].max()  
+    return chrom,start,end
 
 def process_clusters(cluster_type, clusters, dataset_key, output_file_path, list_dict, bedfile_partial_df, sliding_window_id):
     """
@@ -594,13 +600,13 @@ def process_clusters(cluster_type, clusters, dataset_key, output_file_path, list
             
             # extract relevant columns from each line
             data = [(line.split('\t')[0], line.split('\t')[1], line.split('\t')[2], line.split('\t')[6]) for line in selected_lines]
-            if data:
+            if data and selected_lines:
                 list_dict[dataset_key].append(data)
-
-            # format output text
-            bed_lines_str = '\n'.join(selected_lines)
-            output_file.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed ids : {member_ids}")
-            output_file.write(f"\ncluster id:{sliding_window_id}_{cluster_id}, in this cluster's all bed lines :\n{bed_lines_str}\n")
+                chrom,start,end = get_cluster_variables(data)
+                # format output text
+                bed_lines_str = '\n'.join(selected_lines)
+                output_file.write(f'\n"sliding window id"_"cluster id":{sliding_window_id}_{cluster_id},chrom:{chrom},start:{start},end:{end},bed ids:{member_ids}')
+                output_file.write(f"\nbed lines:\n{bed_lines_str}\n")
 
 
 
