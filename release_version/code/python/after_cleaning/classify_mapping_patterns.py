@@ -1,6 +1,7 @@
 import os
 from os import listdir, path, makedirs
 import numpy as np
+import re
 import pickle
 import matplotlib.pyplot as plt
 from scipy.cluster.hierarchy import dendrogram, linkage, to_tree
@@ -331,7 +332,7 @@ def compute_distance_matrix(sequences, positions, output_folder):
 
 
 # recursive classification with top-down approach
-def process_cluster_fully_overlap(root_clade, cluster_id, overlap_matrix, ids, fully_overlapping_clusters):
+def process_cluster_fully_overlap(root_clade, cluster_id, overlap_matrix, ids, fully_overlapping_blocks):
     stack = [(root_clade, cluster_id)] 
     while stack:
         current_clade, current_cluster_id = stack.pop()
@@ -350,7 +351,7 @@ def process_cluster_fully_overlap(root_clade, cluster_id, overlap_matrix, ids, f
             all_overlaps = all(overlap_matrix[i, j] for i, j in pair_indices)
 
         if all_overlaps:
-            fully_overlapping_clusters.append((current_cluster_id, member_ids, indices))
+            fully_overlapping_blocks.append((current_cluster_id, member_ids, indices))
             continue
 
         # add child clades to the stack for further processing
@@ -358,7 +359,7 @@ def process_cluster_fully_overlap(root_clade, cluster_id, overlap_matrix, ids, f
             if not child_clade.is_terminal():
                 stack.append((child_clade, current_cluster_id + 1))
 
-def process_cluster_all_compensatory(root_clade, cluster_id, compensatory_matrix, ids, fully_compensatory_clusters):
+def process_cluster_all_compensatory(root_clade, cluster_id, compensatory_matrix, ids, fully_compensatory_blocks):
     stack = [(root_clade, cluster_id)] 
     while stack:
         current_clade, current_cluster_id = stack.pop()
@@ -374,7 +375,7 @@ def process_cluster_all_compensatory(root_clade, cluster_id, compensatory_matrix
             )
 
         if all_compensatory:
-            fully_compensatory_clusters.append((current_cluster_id, member_ids, indices))
+            fully_compensatory_blocks.append((current_cluster_id, member_ids, indices))
             continue
 
         # add child clades to the stack for further processing
@@ -383,7 +384,7 @@ def process_cluster_all_compensatory(root_clade, cluster_id, compensatory_matrix
                 stack.append((child_clade, current_cluster_id + 1))
 
 # recursive classification with top-down approach
-def process_cluster_any_overlap(root_clade, cluster_id, overlap_matrix, ids, partially_overlapping_clusters):
+def process_cluster_any_overlap(root_clade, cluster_id, overlap_matrix, ids, partially_overlapping_blocks):
     stack = [(root_clade, cluster_id)] 
     while stack:
         current_clade, current_cluster_id = stack.pop()
@@ -404,7 +405,7 @@ def process_cluster_any_overlap(root_clade, cluster_id, overlap_matrix, ids, par
         #     return
 
         if any_overlap:
-            partially_overlapping_clusters.append((current_cluster_id, member_ids, indices))
+            partially_overlapping_blocks.append((current_cluster_id, member_ids, indices))
             continue
 
         # add child clades to the stack for further processing
@@ -412,7 +413,7 @@ def process_cluster_any_overlap(root_clade, cluster_id, overlap_matrix, ids, par
             if not child_clade.is_terminal():
                 stack.append((child_clade, current_cluster_id + 1))
 
-def process_cluster_singleton(root_clade, cluster_id, ids, singularity_cluster):
+def process_cluster_singleton(root_clade, cluster_id, ids, singleton_blocks):
     logging.info("start singleton tree")
     stack = [(root_clade, cluster_id)] 
 
@@ -427,7 +428,7 @@ def process_cluster_singleton(root_clade, cluster_id, ids, singularity_cluster):
         single = num_sequences == 1
 
         if single:
-            singularity_cluster.append((current_cluster_id, member_ids, indices))
+            singleton_blocks.append((current_cluster_id, member_ids, indices))
             continue 
 
         for child_clade in current_clade.clades: 
@@ -573,25 +574,36 @@ def convert_labels_to_strings(tree):
         if node.name is not None:
             node.name = str(node.name)
     return tree
-def get_cluster_variables(data):
+
+def get_block_details(data, dataset_type):
     df = pd.DataFrame(data, columns=['chrom', 'start', 'end', 'others'])
-    chrom = df.iloc[0]['chrom']  
-    start = df['start'].min()  
-    end = df['end'].max()  
-    return chrom,start,end
+    chrom = df.iloc[0]['chrom']
+    if "c" in dataset_type:
+        sym_sign = "Y"
+        ranges = []
+        for item in data:
+            start, end = item[1], item[2]
+            ranges.append((start, end))
+        start_end_list = merge_intervals(ranges)
+        start_list = [str(start) for start, end in start_end_list]
+        start = "|".join(start_list) 
+        end_list = [str(end) for start, end in start_end_list]
+        end = "|".join(end_list) 
+        length_list = [str(int(end) - int(start) + 1) for start, end in start_end_list]
+        length = "|".join(length_list)        
+    else:
+        sym_sign = "N"
+        start = df['start'].min()  
+        end = df['end'].max()
+        start_list = start
+        end_list = end
+        length = int(end) - int(start) + 1
 
-def process_clusters(cluster_type, clusters, dataset_key, output_file_path, list_dict, bedfile_partial_df, sliding_window_id):
+    return sym_sign, chrom, start, end, length
+
+def process_clusters(dataset_type, clusters, dataset_key, output_file_path, list_dict, bedfile_partial_df, sliding_window_id, block_id):
     """
-    Processes different types of clusters and writes the results to a file.
-
-    Parameters:
-    - cluster_type: A string indicating the cluster type (for logging/debugging).
-    - clusters: The cluster data containing (cluster_id, member_ids, indices).
-    - dataset_key: The key in list_dict to store extracted data.
-    - output_file_path: The file path to write output.
-    - list_dict: Dictionary containing various datasets and file paths.
-    - bedfile_partial_df: DataFrame containing BED file data.
-    - sliding_window_id: Identifier for the sliding window.
+    processes different types of dataset and writes the results to a file.
     """
     with open(output_file_path, 'a') as output_file:
         for cluster_id, member_ids, indices in clusters:
@@ -600,17 +612,21 @@ def process_clusters(cluster_type, clusters, dataset_key, output_file_path, list
             
             # extract relevant columns from each line
             data = [(line.split('\t')[0], line.split('\t')[1], line.split('\t')[2], line.split('\t')[6]) for line in selected_lines]
+            coverage = sum(int(line.split('\t')[6]) for line in selected_lines)
+            sym_sign, chrom, start, end, length = get_block_details(data, dataset_type)
+            representative_ids = "|".join(map(str,member_ids))
             if data and selected_lines:
                 list_dict[dataset_key].append(data)
-                chrom,start,end = get_cluster_variables(data)
-                # format output text
                 bed_lines_str = '\n'.join(selected_lines)
-                output_file.write(f'\n"sliding window id"_"cluster id":{sliding_window_id}_{cluster_id},chrom:{chrom},start:{start},end:{end},bed ids:{member_ids}')
-                output_file.write(f"\nbed lines:\n{bed_lines_str}\n")
+                block_id += 1
+                output_file.write(f"\nblockID:{block_id},representative_SeqID:{representative_ids},start:{start},end:{end},clusterID:{cluster_id},length:{length},coverage:{coverage},symmetric:{sym_sign},dataset_type:{dataset_type}")
+                output_file.write(f'\nsliding_windowID":{sliding_window_id},"chrom":{chrom}')
+                output_file.write(f"\noriginal bed lines:\n{bed_lines_str}\n")
+    return block_id
 
 
 
-def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, compensatory_matrix, output_folder, list_dict, sliding_window_id):
+def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, compensatory_matrix, output_folder, list_dict, sliding_window_id, block_id):
     # def analyze_tree(output_folder):
     # Convert to condensed distance matrix
     if dist_matrix.size == 1:
@@ -635,26 +651,26 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, c
     # # load tree
     tree = Phylo.read(tree_path, 'newick')
     # classify clusters based on overlap and sequence symmetry
-    fully_overlapping_clusters = []
-    fully_compensatory_clusters = []
-    partially_overlapping_clusters = []
-    singularity_cluster = []
+    fully_overlapping_blocks = []
+    fully_compensatory_blocks = []
+    partially_overlapping_blocks = []
+    singleton_blocks = []
     # other_situation = []
     ids_int = list(map(int, ids))
     if overlap_matrix.size >=2 :
-        process_cluster_fully_overlap(tree.root, 0, overlap_matrix, ids_int, fully_overlapping_clusters)
-        process_cluster_any_overlap(tree.root, 0, overlap_matrix, ids_int, partially_overlapping_clusters)
+        process_cluster_fully_overlap(tree.root, 0, overlap_matrix, ids_int, fully_overlapping_blocks)
+        process_cluster_any_overlap(tree.root, 0, overlap_matrix, ids_int, partially_overlapping_blocks)
     if compensatory_matrix.size >=2 :
-        process_cluster_all_compensatory(tree.root, 0, compensatory_matrix, ids_int, fully_compensatory_clusters)
-    process_cluster_singleton(tree.root, 0, ids_int, singularity_cluster)
+        process_cluster_all_compensatory(tree.root, 0, compensatory_matrix, ids_int, fully_compensatory_blocks)
+    process_cluster_singleton(tree.root, 0, ids_int, singleton_blocks)
     print("finished calculating tree 3 step",datetime.now() ) 
     logging.info("finished calculating tree 3 step")
 
     # Call the function for each cluster type
-    process_clusters("Full Overlap", fully_overlapping_clusters, "dataset_full_overlap", list_dict["output_file_full_overlap"], list_dict, bedfile_partial_df, sliding_window_id)
-    process_clusters("Compensatory", fully_compensatory_clusters, "dataset_compensatory", list_dict["output_file_compensatory"], list_dict, bedfile_partial_df, sliding_window_id)
-    process_clusters("Partial Overlap", partially_overlapping_clusters, "dataset_partial_overlap", list_dict["output_file_partial_overlap"], list_dict, bedfile_partial_df, sliding_window_id)
-    process_clusters("Singleton", singularity_cluster, "dataset_singleton", list_dict["output_file_singleton"], list_dict, bedfile_partial_df, sliding_window_id)
+    block_id = process_clusters("fo", fully_overlapping_blocks, "dataset_full_overlap", list_dict["output_file_full_overlap"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
+    block_id = process_clusters("c", fully_compensatory_blocks, "dataset_compensatory", list_dict["output_file_compensatory"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
+    block_id = process_clusters("po", partially_overlapping_blocks, "dataset_partial_overlap", list_dict["output_file_partial_overlap"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
+    block_id = process_clusters("s", singleton_blocks, "dataset_singleton", list_dict["output_file_singleton"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
     # # Convert lists to sets and find the intersection
     # qseqid_list.sort()
     # intersection = set(mirdeep2_qseqid_list) & set(qseqid_list)
@@ -670,6 +686,7 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, c
     # output_file2.write(f"\nmirdeep2_qseqid_list count: {len(mirdeep2_qseqid_list)}\n qseqid_list count:{len(qseqid_list)}\n")
     # output_file2.write(f"\nmirdeep2 qseqid including count: {overlap_count:.2f}, including qseqid: {intersection},mirdeep2 qseqid including rate: {overlap_rate * 100:.2f}%\n")
     # # # Plot each dataset in separate figures
+    return block_id
 
 
 def final_step(list_dict, output_folder):
@@ -720,6 +737,9 @@ def final_step(list_dict, output_folder):
     else:
         print(f"After finishing, the folder {tmp_output_folder} is not readable.")
 
+    # save_table(output_folder)
+
+
 
 def classify_pattern(bed_file, output_folder):
     # print("1")
@@ -743,13 +763,13 @@ def classify_pattern(bed_file, output_folder):
     list_names = [ "dataset_full_overlap", "dataset_compensatory", "dataset_partial_overlap","dataset_singleton",  
                    "output_file_full_overlap", "output_file_compensatory", "output_file_partial_overlap", "output_file_singleton" ]
     list_dict = {name: [] if 'dataset' in name else "" for name in list_names}
-    list_dict["output_file_full_overlap"] = os.path.join(output_folder, f"fully_overlapping_clusters.txt")
-    list_dict["output_file_compensatory"] = os.path.join(output_folder, f"fully_compensatory_clusters.txt")
-    list_dict["output_file_partial_overlap"] = os.path.join(output_folder, f"partially_overlapping_clusters.txt")
-    list_dict["output_file_singleton"] = os.path.join(output_folder, f"singularity_cluster.txt")
+    list_dict["output_file_full_overlap"] = os.path.join(output_folder, f"fully_overlapping_blocks.txt")
+    list_dict["output_file_compensatory"] = os.path.join(output_folder, f"fully_compensatory_blocks.txt")
+    list_dict["output_file_partial_overlap"] = os.path.join(output_folder, f"partially_overlapping_blocks.txt")
+    list_dict["output_file_singleton"] = os.path.join(output_folder, f"singleton_blocks.txt")
     # list_dict["output_file_path5"] = os.path.join(output_folder, "other_situation.txt")
     sliding_window_id = 0
-
+    block_id = 0
     for ids, sequences, positions, bedfile_partial_df in process_bed_file_in_ranges(bed_file):
         # ids, sequences, positions = read_bed_file(bed_file)
         # print("1")
@@ -764,7 +784,7 @@ def classify_pattern(bed_file, output_folder):
             # print('\n'.join([' '.join(map(str, row)) for row in dist_matrix]))
             # print("\ndist matrix size now",dist_matrix.size)
             if dist_matrix.size != 0:
-                analyze_tree(bedfile_partial_df, ids, dist_matrix, 'average', overlap_matrix, compensatory_matrix, output_folder, list_dict, sliding_window_id)
+                block_id = analyze_tree(bedfile_partial_df, ids, dist_matrix, 'average', overlap_matrix, compensatory_matrix, output_folder, list_dict, sliding_window_id, int(block_id))
                 # print("3")
                 print("dist_matrix not empty")
                 sliding_window_id += 1
