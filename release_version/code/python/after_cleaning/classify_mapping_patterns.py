@@ -53,6 +53,8 @@ OVERLAP_BETWEEN_WINDOWS = 120
 def process_bed_file_in_ranges(file_path):
     # read the BED file as a DataFrame
     bed_whole_df = pd.read_csv(file_path, sep='\t', header=None, names=['chrom', 'start', 'end', 'sequence', 'id', 'ids', 'same_seq_count'])
+    # print("start type:", bed_whole_df['start'].dtype)
+    # print("end type:", bed_whole_df['end'].dtype)
     ##iterate each chrom data
     for chromsome in bed_whole_df['chrom'].unique():
         bed_df = bed_whole_df[bed_whole_df['chrom'] == chromsome]
@@ -198,7 +200,7 @@ def vetorized_sequences_gap(positions):
 
     return gap_matrix
 
-# function to align and check compensatory match
+# function to align and check symmetric match
 def align_and_check(params):
     i, j, seq_i_rc, seq_j, threshold, aligner = params
     # if distance_between_sequences >= 100:
@@ -217,9 +219,9 @@ def align_and_check(params):
         for a, b in zip(range(block1[0], block1[1]), range(block2[0], block2[1]))
     )
     shorter_length = min(len(seq_i_rc), len(seq_j))
-    is_compensatory = (match_count / shorter_length) >= threshold
+    is_symmetric = (match_count / shorter_length) >= threshold
 
-    return i, j, is_compensatory
+    return i, j, is_symmetric
 
 # chunk generator to avoid large memory usage
 def generate_chunks(pos_distances, num_seqs, sequences, threshold, aligner, chunk_size):
@@ -237,11 +239,11 @@ def generate_chunks(pos_distances, num_seqs, sequences, threshold, aligner, chun
     if chunk:
         yield chunk
         
-def vectorized_compensatory_check_parallel(sequences, pos_distances, threshold=0.7):
+def vectorized_symmetric_check_parallel(sequences, pos_distances, threshold=0.7):
     num_seqs = len(sequences)
 
-    # initialize sparse compensatory matrix
-    compensatory_matrix = lil_matrix((num_seqs, num_seqs), dtype=bool)
+    # initialize sparse symmetric matrix
+    symmetric_matrix = lil_matrix((num_seqs, num_seqs), dtype=bool)
 
     # initialize aligner
     aligner = PairwiseAligner()
@@ -256,11 +258,11 @@ def vectorized_compensatory_check_parallel(sequences, pos_distances, threshold=0
     with Pool(cpu_count()) as pool:
         for chunk in generate_chunks(pos_distances, num_seqs, sequences, threshold, aligner, chunk_size):
             results = pool.map(align_and_check, chunk)
-            for i, j, is_compensatory in results:
-                if is_compensatory:
-                    compensatory_matrix[i, j] = compensatory_matrix[j, i] = True
+            for i, j, is_symmetric in results:
+                if is_symmetric:
+                    symmetric_matrix[i, j] = symmetric_matrix[j, i] = True
 
-    return compensatory_matrix
+    return symmetric_matrix
 
 def get_bed_lines_by_indices(bedfile_partial_df, indices):
     # # read all lines in bed
@@ -308,9 +310,9 @@ def compute_distance_matrix(sequences, positions, output_folder):
     #print("finished calculating distance 1 step",datetime.now() )
     pos_distances_matrix = vetorized_sequences_gap(positions)
     #print("finished calculating distance 2 step",datetime.now() )
-    compensatory_matrix = vectorized_compensatory_check_parallel(sequences, pos_distances_matrix)
+    symmetric_matrix = vectorized_symmetric_check_parallel(sequences, pos_distances_matrix)
     #print("finished calculating distance 3 step",datetime.now() )
-    compensatory_matrix_dense = compensatory_matrix.toarray()
+    symmetric_matrix_dense = symmetric_matrix.toarray()
 
     # compute positional distances
     # compute middle positions
@@ -320,7 +322,7 @@ def compute_distance_matrix(sequences, positions, output_folder):
     pos_distances = np.abs(mid_positions[i_indices] - mid_positions[j_indices])
 
     pos_distances[overlap_matrix[i_indices, j_indices]] = 0
-    pos_distances[compensatory_matrix_dense[i_indices, j_indices]] = 0
+    pos_distances[symmetric_matrix_dense[i_indices, j_indices]] = 0
 
     # fill distance matrix
     dist_matrix[i_indices, j_indices] = pos_distances
@@ -328,7 +330,7 @@ def compute_distance_matrix(sequences, positions, output_folder):
     # print('\n'.join([' '.join(map(str, row)) for row in dist_matrix]))
     dist_matrix += dist_matrix.T  # Symmetrize the matrix
     print("finished calculating distance 4 step",datetime.now() )
-    return dist_matrix, overlap_matrix, compensatory_matrix_dense
+    return dist_matrix, overlap_matrix, symmetric_matrix_dense
 
 
 # recursive classification with top-down approach
@@ -359,7 +361,7 @@ def process_cluster_fully_overlap(root_clade, cluster_id, overlap_matrix, ids, f
             if not child_clade.is_terminal():
                 stack.append((child_clade, current_cluster_id + 1))
 
-def process_cluster_all_compensatory(root_clade, cluster_id, compensatory_matrix, ids, fully_compensatory_blocks):
+def process_cluster_all_symmetric(root_clade, cluster_id, symmetric_matrix, ids, fully_symmetric_blocks):
     stack = [(root_clade, cluster_id)] 
     while stack:
         current_clade, current_cluster_id = stack.pop()
@@ -369,13 +371,13 @@ def process_cluster_all_compensatory(root_clade, cluster_id, compensatory_matrix
         indices = [ids.index(name) for name in member_ids]
         num_sequences = len(indices)
         if num_sequences > 1:
-            all_compensatory = all(
-                any(compensatory_matrix[i, j] for j in indices if i != j)
+            all_symmetric = all(
+                any(symmetric_matrix[i, j] for j in indices if i != j)
                 for i in indices
             )
 
-        if all_compensatory:
-            fully_compensatory_blocks.append((current_cluster_id, member_ids, indices))
+        if all_symmetric:
+            fully_symmetric_blocks.append((current_cluster_id, member_ids, indices))
             continue
 
         # add child clades to the stack for further processing
@@ -400,8 +402,8 @@ def process_cluster_any_overlap(root_clade, cluster_id, overlap_matrix, ids, par
             )
         else:
             any_overlap = False
-        # if parent_compensatory:
-        #     # Skip processing below clusters 
+        # if parent_symmetric:
+        #     # Skip processing below blocks 
         #     return
 
         if any_overlap:
@@ -437,7 +439,7 @@ def process_cluster_singleton(root_clade, cluster_id, ids, singleton_blocks):
 
 # merge overlapping x-axis intervals using IntervalTree
 def merge_intervals(intervals):
-    tree = IntervalTree(Interval(start, end) for start, end in intervals)
+    tree = IntervalTree(Interval(int(start), int(end)) for start, end in intervals)
     tree.merge_overlaps()
     return sorted((iv.begin, iv.end) for iv in tree)
 
@@ -496,7 +498,7 @@ def plot_dataset(dataset, dataset_idx, output_folder):
     # plt.grid(axis='x', linestyle='--', alpha=0.7)
     # plt.tight_layout()
     # Save the figure with the specified filename
-    # filename = os.path.join(output_folder, f'middle_results/compensatory_cluster_id_{dataset_idx + 1}.png')
+    # filename = os.path.join(output_folder, f'middle_results/symmetric_cluster_id_{dataset_idx + 1}.png')
     # # filename = f'cluster_id_{dataset_idx + 1}.png'
     # plt.savefig(filename)
     # plt.close() 
@@ -601,12 +603,12 @@ def get_block_details(data, dataset_type):
 
     return sym_sign, chrom, start, end, length
 
-def process_clusters(dataset_type, clusters, dataset_key, output_file_path, list_dict, bedfile_partial_df, sliding_window_id, block_id):
+def process_blocks(dataset_type, blocks, dataset_key, output_file_path, list_dict, bedfile_partial_df, sliding_window_id, block_id):
     """
     processes different types of dataset and writes the results to a file.
     """
     with open(output_file_path, 'a') as output_file:
-        for cluster_id, member_ids, indices in clusters:
+        for cluster_id, member_ids, indices in blocks:
             selected_bed_lines = get_bed_lines_by_indices(bedfile_partial_df, indices)
             selected_lines = selected_bed_lines.apply(lambda row: '\t'.join(map(str, row)), axis=1).tolist()
             
@@ -620,13 +622,13 @@ def process_clusters(dataset_type, clusters, dataset_key, output_file_path, list
                 bed_lines_str = '\n'.join(selected_lines)
                 block_id += 1
                 output_file.write(f"\nblockID:{block_id},representative_SeqID:{representative_ids},start:{start},end:{end},clusterID:{cluster_id},length:{length},coverage:{coverage},symmetric:{sym_sign},dataset_type:{dataset_type}")
-                output_file.write(f'\nsliding_windowID":{sliding_window_id},"chrom":{chrom}')
+                output_file.write(f"\nsliding_windowID:{sliding_window_id},chrom:{chrom}")
                 output_file.write(f"\noriginal bed lines:\n{bed_lines_str}\n")
     return block_id
 
 
 
-def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, compensatory_matrix, output_folder, list_dict, sliding_window_id, block_id):
+def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, symmetric_matrix, output_folder, list_dict, sliding_window_id, block_id):
     # def analyze_tree(output_folder):
     # Convert to condensed distance matrix
     if dist_matrix.size == 1:
@@ -650,9 +652,9 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, c
 
     # # load tree
     tree = Phylo.read(tree_path, 'newick')
-    # classify clusters based on overlap and sequence symmetry
+    # classify blocks based on overlap and sequence symmetry
     fully_overlapping_blocks = []
-    fully_compensatory_blocks = []
+    fully_symmetric_blocks = []
     partially_overlapping_blocks = []
     singleton_blocks = []
     # other_situation = []
@@ -660,17 +662,17 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, c
     if overlap_matrix.size >=2 :
         process_cluster_fully_overlap(tree.root, 0, overlap_matrix, ids_int, fully_overlapping_blocks)
         process_cluster_any_overlap(tree.root, 0, overlap_matrix, ids_int, partially_overlapping_blocks)
-    if compensatory_matrix.size >=2 :
-        process_cluster_all_compensatory(tree.root, 0, compensatory_matrix, ids_int, fully_compensatory_blocks)
+    if symmetric_matrix.size >=2 :
+        process_cluster_all_symmetric(tree.root, 0, symmetric_matrix, ids_int, fully_symmetric_blocks)
     process_cluster_singleton(tree.root, 0, ids_int, singleton_blocks)
     print("finished calculating tree 3 step",datetime.now() ) 
     logging.info("finished calculating tree 3 step")
 
     # Call the function for each cluster type
-    block_id = process_clusters("fo", fully_overlapping_blocks, "dataset_full_overlap", list_dict["output_file_full_overlap"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
-    block_id = process_clusters("c", fully_compensatory_blocks, "dataset_compensatory", list_dict["output_file_compensatory"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
-    block_id = process_clusters("po", partially_overlapping_blocks, "dataset_partial_overlap", list_dict["output_file_partial_overlap"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
-    block_id = process_clusters("s", singleton_blocks, "dataset_singleton", list_dict["output_file_singleton"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
+    block_id = process_blocks("fo", fully_overlapping_blocks, "dataset_full_overlap", list_dict["file_path_full_overlap"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
+    block_id = process_blocks("c", fully_symmetric_blocks, "dataset_symmetric", list_dict["file_path_symmetric"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
+    block_id = process_blocks("po", partially_overlapping_blocks, "dataset_partial_overlap", list_dict["file_path_partial_overlap"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
+    block_id = process_blocks("s", singleton_blocks, "dataset_singleton", list_dict["file_path_singleton"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
     # # Convert lists to sets and find the intersection
     # qseqid_list.sort()
     # intersection = set(mirdeep2_qseqid_list) & set(qseqid_list)
@@ -688,6 +690,80 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, c
     # # # Plot each dataset in separate figures
     return block_id
 
+def find_matching_blockid(row, df_sym, tag):
+    if tag == "not_sym":
+        matching_rows = df_sym[(df_sym['min_start'] <= int(row['end'])) & (df_sym['max_end'] >= int(row['end']))]
+    else:
+        matching_rows = df_sym[(df_sym['min_start'] <= row['max_end']) & (df_sym['max_end'] >= row['min_start']) & (df_sym["blockID"] != int(row["blockID"]))]
+    return '|'.join(map(str, matching_rows['blockID'])) if not matching_rows.empty else "N"
+
+def save_table(output_folder):
+    files = ["fully_symmetric_blocks.txt", "fully_overlapping_blocks.txt", 
+             "partially_overlapping_blocks.txt", "singleton_blocks.txt"]
+    file_paths = {}
+    block_lines = []
+    for name in files:
+        try:
+            file_paths[name] = os.path.join(output_folder, name)
+            with open(file_paths[name], "r") as file:
+                for line in file:
+                    line = line.strip()
+                    if line.startswith("blockID:"):
+                        block_lines.append(line)
+        except Exception as e:
+            print(f"Error opening file '{file_paths.get(name, 'UNKNOWN')}': {e}")
+            file_contents = None
+    #start store in dataframe
+    columns = ["blockID", "representative_SeqID", "start", "end", "clusterID", "length", "coverage", "symmetric", "dataset_type"]
+    data = []
+    for block in block_lines:
+        pairs = block.split(',')
+        block_dict = {}
+        for pair in pairs:
+            key, value = pair.split(':', 1)
+            block_dict[key] = value
+        data.append(block_dict)
+    df = pd.DataFrame(data, columns=columns)
+    df['blockID'] = df['blockID'].astype(int) 
+    df.sort_values(by="blockID", ascending=True, inplace=True)
+    df_sym = df[df["symmetric"] == "Y"].copy()
+    df_not_sym = df[df["symmetric"] == "N"].copy()
+    df_sym['min_start'] = df_sym.apply(lambda row: min(list(map(int, row['start'].split('|')))), axis=1)
+    df_sym['max_end'] = df_sym.apply(lambda row: min(list(map(int, row['end'].split('|')))), axis=1)
+    #add within_symmetric column
+    df_not_sym['within_symmetric'] = df_not_sym.apply(lambda row: find_matching_blockid(row, df_sym,"not_sym"), axis=1)
+    df_sym['within_symmetric'] = df_sym.apply(lambda row: find_matching_blockid(row, df_sym,"sym"), axis=1)
+    df_sym = df_sym.drop(columns=['min_start'])
+    df_sym = df_sym.drop(columns=['max_end'])
+    df_combined = pd.concat([df_sym, df_not_sym], axis=0, ignore_index=True)
+    df_combined = df_combined.sort_values(by="blockID", ascending=True)
+    df_combined.to_csv(os.path.join(output_folder,"final_all_blocks_table.csv"), index=False)   
+
+def check_length_condition(value):
+    numbers = list(map(int, value.split('|')))
+    return all(num >= 18 and num <= 30 for num in numbers)
+
+def has_overlap(value, blockID_set):
+    if value == "N":  
+        return False
+    numbers = set(value.split('|'))
+    return not numbers.isdisjoint(blockID_set)
+
+def save_filtered_table(output_folder):
+    df = pd.read_csv(os.path.join(output_folder,"final_all_blocks_table.csv"), sep=',')
+    df_sym = df[df["symmetric"] == "Y"].copy()
+    df_not_sym = df[df["symmetric"] == "N"].copy()
+    df_filtered_not_sym = df_not_sym[(df_not_sym['length'].astype(int) >= 18) & (df_not_sym['length'].astype(int) <= 30) & (df_not_sym['coverage'].astype(int) > 1)]
+    df_filtered_sym = df_sym[df_sym['length'].apply(check_length_condition)]
+    blockID_set = set(df_filtered_sym["blockID"])
+    df_overlap = df_filtered_not_sym[df_filtered_not_sym["within_symmetric"].apply(lambda x: has_overlap(x, blockID_set))]
+    df_filtered_not_sym_no_overlap = df_filtered_not_sym[~df_filtered_not_sym["within_symmetric"].apply(lambda x: has_overlap(x, blockID_set))]
+    print("final not symmetric count (include overlap):",len(df_filtered_not_sym))
+    print("final overlap count:", len(df_overlap))
+    print("final symmetric number count (include overlap):",len(df_filtered_sym))
+    df_filtered_combined = pd.concat([df_filtered_not_sym_no_overlap, df_filtered_sym], axis=0, ignore_index=True)
+    df_filtered_combined = df_filtered_combined.sort_values(by="blockID", ascending=True)
+    df_filtered_combined.to_csv(os.path.join(output_folder,"final_filtered_blocks_table.csv"), index=False)  
 
 def final_step(list_dict, output_folder):
     tmp_output_folder = "/tmp/mzhou10/image_results"
@@ -701,7 +777,7 @@ def final_step(list_dict, output_folder):
         print(f"At the beginning, the folder {tmp_output_folder} is not readable.")
         sys.exit(1)
     
-    combined_dataset = list_dict["dataset_full_overlap"] + list_dict["dataset_compensatory"] + list_dict["dataset_partial_overlap"] + list_dict["dataset_singleton"]
+    combined_dataset = list_dict["dataset_full_overlap"] + list_dict["dataset_symmetric"] + list_dict["dataset_partial_overlap"] + list_dict["dataset_singleton"]
     if combined_dataset:
         for idx, dataset in enumerate(combined_dataset):
             plot_dataset(dataset, idx, tmp_output_folder)
@@ -737,8 +813,8 @@ def final_step(list_dict, output_folder):
     else:
         print(f"After finishing, the folder {tmp_output_folder} is not readable.")
 
-    # save_table(output_folder)
-
+    save_table(output_folder)
+    save_filtered_table(output_folder)
 
 
 def classify_pattern(bed_file, output_folder):
@@ -760,16 +836,17 @@ def classify_pattern(bed_file, output_folder):
     # print(gap_matrix)
     ##! need add slide window way to read bed file
     # write the classification results
-    list_names = [ "dataset_full_overlap", "dataset_compensatory", "dataset_partial_overlap","dataset_singleton",  
-                   "output_file_full_overlap", "output_file_compensatory", "output_file_partial_overlap", "output_file_singleton" ]
+    list_names = [ "dataset_full_overlap", "dataset_symmetric", "dataset_partial_overlap", "dataset_singleton",  
+                   "file_path_full_overlap", "file_path_symmetric", "file_path_partial_overlap", "file_path_singleton" ]
     list_dict = {name: [] if 'dataset' in name else "" for name in list_names}
-    list_dict["output_file_full_overlap"] = os.path.join(output_folder, f"fully_overlapping_blocks.txt")
-    list_dict["output_file_compensatory"] = os.path.join(output_folder, f"fully_compensatory_blocks.txt")
-    list_dict["output_file_partial_overlap"] = os.path.join(output_folder, f"partially_overlapping_blocks.txt")
-    list_dict["output_file_singleton"] = os.path.join(output_folder, f"singleton_blocks.txt")
+    list_dict["file_path_full_overlap"] = os.path.join(output_folder, f"fully_overlapping_blocks.txt")
+    list_dict["file_path_symmetric"] = os.path.join(output_folder, f"fully_symmetric_blocks.txt")
+    list_dict["file_path_partial_overlap"] = os.path.join(output_folder, f"partially_overlapping_blocks.txt")
+    list_dict["file_path_singleton"] = os.path.join(output_folder, f"singleton_blocks.txt")
     # list_dict["output_file_path5"] = os.path.join(output_folder, "other_situation.txt")
     sliding_window_id = 0
     block_id = 0
+    i = 0
     for ids, sequences, positions, bedfile_partial_df in process_bed_file_in_ranges(bed_file):
         # ids, sequences, positions = read_bed_file(bed_file)
         # print("1")
@@ -778,14 +855,16 @@ def classify_pattern(bed_file, output_folder):
         columns_to_show = ["start", "end"]  # Replace with the columns you want
         logging.info(bedfile_partial_df.loc[:, columns_to_show])
         if ids and sequences and positions and not bedfile_partial_df.empty:
-            dist_matrix, overlap_matrix, compensatory_matrix = compute_distance_matrix(sequences, positions, output_folder)
+            dist_matrix, overlap_matrix, symmetric_matrix = compute_distance_matrix(sequences, positions, output_folder)
             print("2")
             # print("\ndist Matrix now:")
             # print('\n'.join([' '.join(map(str, row)) for row in dist_matrix]))
             # print("\ndist matrix size now",dist_matrix.size)
             if dist_matrix.size != 0:
-                block_id = analyze_tree(bedfile_partial_df, ids, dist_matrix, 'average', overlap_matrix, compensatory_matrix, output_folder, list_dict, sliding_window_id, int(block_id))
+                block_id = analyze_tree(bedfile_partial_df, ids, dist_matrix, 'average', overlap_matrix, symmetric_matrix, output_folder, list_dict, sliding_window_id, block_id)
                 # print("3")
+                print(f"Iteration {i+1}: block_id = {block_id}")
+                i+=1
                 print("dist_matrix not empty")
                 sliding_window_id += 1
             else:
