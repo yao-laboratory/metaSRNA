@@ -739,9 +739,9 @@ def save_table(output_folder):
     df_combined = df_combined.sort_values(by="blockID", ascending=True)
     df_combined.to_csv(os.path.join(output_folder,"final_all_blocks_table.csv"), index=False)   
 
-def check_length_condition(value):
+def check_length_condition(value, start_limit, end_limit):
     numbers = list(map(int, value.split('|')))
-    return all(num >= 18 and num <= 30 for num in numbers)
+    return all(num >= start_limit and num <= end_limit for num in numbers)
 
 def has_overlap(value, blockID_set):
     if value == "N":  
@@ -749,12 +749,12 @@ def has_overlap(value, blockID_set):
     numbers = set(value.split('|'))
     return not numbers.isdisjoint(blockID_set)
 
-def save_filtered_table(output_folder):
+def save_filtered_table(output_folder, start_limit, end_limit, coverage_limit):
     df = pd.read_csv(os.path.join(output_folder,"final_all_blocks_table.csv"), sep=',')
     df_sym = df[df["symmetric"] == "Y"].copy()
     df_not_sym = df[df["symmetric"] == "N"].copy()
-    df_filtered_not_sym = df_not_sym[(df_not_sym['length'].astype(int) >= 18) & (df_not_sym['length'].astype(int) <= 30) & (df_not_sym['coverage'].astype(int) > 1)]
-    df_filtered_sym = df_sym[df_sym['length'].apply(check_length_condition)]
+    df_filtered_not_sym = df_not_sym[(df_not_sym['length'].astype(int) >= start_limit) & (df_not_sym['length'].astype(int) <= end_limit) & (df_not_sym['coverage'].astype(int) > coverage_limit)]
+    df_filtered_sym = df_sym[(df_sym['length'].apply(lambda length_value: check_length_condition(length_value, start_limit, end_limit))) & (df_sym['coverage'].astype(int) > coverage_limit)]
     blockID_set = set(df_filtered_sym["blockID"])
     df_overlap = df_filtered_not_sym[df_filtered_not_sym["within_symmetric"].apply(lambda x: has_overlap(x, blockID_set))]
     df_filtered_not_sym_no_overlap = df_filtered_not_sym[~df_filtered_not_sym["within_symmetric"].apply(lambda x: has_overlap(x, blockID_set))]
@@ -763,7 +763,7 @@ def save_filtered_table(output_folder):
     print("final symmetric number count (include overlap):",len(df_filtered_sym))
     df_filtered_combined = pd.concat([df_filtered_not_sym_no_overlap, df_filtered_sym], axis=0, ignore_index=True)
     df_filtered_combined = df_filtered_combined.sort_values(by="blockID", ascending=True)
-    df_filtered_combined.to_csv(os.path.join(output_folder,"final_filtered_blocks_table.csv"), index=False)  
+    df_filtered_combined.to_csv(os.path.join(output_folder,f"final_filtered_blocks_table_{start_limit}_{end_limit}_{coverage_limit}.csv"), index=False)  
 
 def final_step(list_dict, output_folder):
     tmp_output_folder = "/tmp/mzhou10/image_results"
@@ -814,7 +814,7 @@ def final_step(list_dict, output_folder):
         print(f"After finishing, the folder {tmp_output_folder} is not readable.")
 
     save_table(output_folder)
-    save_filtered_table(output_folder)
+    save_filtered_table(output_folder,18,30,1)
 
 
 def classify_pattern(bed_file, output_folder):
