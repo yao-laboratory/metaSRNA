@@ -396,15 +396,24 @@ def process_cluster_any_overlap(root_clade, cluster_id, overlap_matrix, ids, par
         indices = [ids.index(name) for name in member_ids]
         num_sequences = len(indices)
         if num_sequences > 1:
+            pair_indices = [(i, j) for idx_i, i in enumerate(indices)
+                            for idx_j, j in enumerate(indices) if idx_i < idx_j]
+            # 1st situation: every sequence overlaps with all other sequences
+            all_overlaps = all(overlap_matrix[i, j] for i, j in pair_indices)
+
             any_overlap = all(
                 any(overlap_matrix[i, j] for j in indices if i != j)
                 for i in indices
             )
         else:
+            all_overlaps = False
             any_overlap = False
         # if parent_symmetric:
         #     # Skip processing below blocks 
         #     return
+        ###exclude fully overlap situation
+        if all_overlaps:
+            continue
 
         if any_overlap:
             partially_overlapping_blocks.append((current_cluster_id, member_ids, indices))
