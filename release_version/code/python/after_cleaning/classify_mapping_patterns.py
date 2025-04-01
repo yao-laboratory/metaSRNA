@@ -564,12 +564,19 @@ def unsupervise_learning(image_paths, output_folder):
 
     # Step 3: visualize the results
     plt.figure(figsize=(8, 6))
-    plt.scatter(features_reduced[:, 0], features_reduced[:, 1], c=labels, cmap='viridis', s=50, alpha=0.6, label='Data Points')
-    plt.scatter(centroids[:, 0], centroids[:, 1], c='red', s=200, marker='X', label='Cluster Centers')
+    plt.scatter(features_reduced[:, 0], features_reduced[:, 1], c=labels, cmap='viridis', s=20, alpha=0.6, label='Data Points')
+    plt.scatter(centroids[:, 0], centroids[:, 1], c='red', s=30, marker='X', label='Cluster Centers')
     plt.title('KMeans Clustering')
     plt.xlabel('Feature 1')
     plt.ylabel('Feature 2')
     plt.savefig(f"{output_folder}/KMeans_plot.png", format='png', dpi=300, bbox_inches='tight')
+    # annotate each centroid with "Cluster 0", "Cluster 1"...
+    for i in range(len(centroids)):
+        x = centroids[i, 0]
+        y = centroids[i, 1]
+        plt.annotate(f'Cluster {i}',xy=(x, y),xytext=(x + 0.5, y + 0.5),textcoords='data',fontsize=10,color='black',arrowprops=dict(arrowstyle='->', color='gray'))
+    plt.tight_layout(pad=0.5)
+    plt.savefig(f"{output_folder}/KMeans_plot_with_cluster_ids.png", format='png', dpi=300, bbox_inches='tight')    
     plt.close()
     # calculate distances from each image to the centroids
     distances = euclidean_distances(features_reduced, centroids)
