@@ -481,18 +481,21 @@ def merge_intervals(intervals):
     return sorted((iv.begin, iv.end) for iv in tree)
 
 # function to plot each dataset
-def plot_dataset(dataset, dataset_idx, output_folder):
+def plot_dataset(dataset,output_folder):
     # convert each tuple (string values) into a list (integer values)
-    chrom = dataset[0][0]
-    dataset = [[int(start), int(end), int(line_count)] for chrom, start, end, line_count in dataset]
+    block_id = dataset[0][0]
+    # print("block_id:")
+    # print(block_id)
+    chrom = dataset[0][1]
+    dataset = [[int(start), int(end), int(line_count)] for block_id, chrom, start, end, line_count in dataset]
     plt.figure(figsize=(12, 4))
     x_min = min(int(item[0]) for item in dataset)
     x_max = max(int(item[1]) for item in dataset)
     parameter = 0.05
     # create unique x-limits based on dataset
     important_ranges = [(item[0], item[1]) for item in dataset]
-    # logging.info("dataset_idx")
-    # logging.info(dataset_idx)
+    # logging.info("block_id")
+    # logging.info(block_id)
     # logging.info("draw data start")
     # logging.info(dataset)
     # logging.info(important_ranges)
@@ -516,7 +519,7 @@ def plot_dataset(dataset, dataset_idx, output_folder):
     plt.tight_layout()
 
     #save the plot to a buffer as a grayscale image
-    buffer_path = f"{output_folder}/temp_plot_{dataset_idx}_{x_min}_{x_max}_{chrom}.png"
+    buffer_path = f"{output_folder}/temp_plot_{block_id}_{x_min}_{x_max}_{chrom}.png"
     plt.savefig(buffer_path, format='png', dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -525,18 +528,18 @@ def plot_dataset(dataset, dataset_idx, output_folder):
     binary_img = img.point(lambda x: 255 if x > 0 else 0, mode='1')
 
     #Save the binary image
-    binary_img.save(f"{output_folder}/binary_plot_{dataset_idx}_{x_min}_{x_max}_{chrom}.png")
+    binary_img.save(f"{output_folder}/binary_plot_{block_id}_{x_min}_{x_max}_{chrom}.png")
     ##new code end
 
     # set labels and title for each figure
     # plt.xlabel("Genomic Positions")
     # plt.ylabel(f"Regions")
-    # plt.title(f"Genomic Regions with Multiple Lines (Dataset {dataset_idx + 1})")
+    # plt.title(f"Genomic Regions with Multiple Lines (Dataset {block_id + 1})")
     # plt.grid(axis='x', linestyle='--', alpha=0.7)
     # plt.tight_layout()
     # Save the figure with the specified filename
-    # filename = os.path.join(output_folder, f'middle_results/symmetric_cluster_id_{dataset_idx + 1}.png')
-    # # filename = f'cluster_id_{dataset_idx + 1}.png'
+    # filename = os.path.join(output_folder, f'middle_results/symmetric_cluster_id_{block_id + 1}.png')
+    # # filename = f'cluster_id_{block_id + 1}.png'
     # plt.savefig(filename)
     # plt.close() 
     # plt.show()
@@ -676,9 +679,10 @@ def process_blocks(dataset_type, blocks, dataset_key, output_file_path, list_dic
                 sym_sign, chrom, start, end, length = get_block_details(data, dataset_type)
                 representative_ids = "|".join(map(str,member_ids))
                 if data and selected_lines:
+                    block_id += 1  
+                    data = [(block_id, line.split('\t')[0], line.split('\t')[1], line.split('\t')[2], line.split('\t')[6]) for line in selected_lines]
                     list_dict[dataset_key].append(data)
                     bed_lines_str = '\n'.join(selected_lines)
-                    block_id += 1  
                     output_file.write(f"\nblockID:{block_id},representative_SeqID:{representative_ids},start:{start},end:{end},length:{length},coverage:{coverage},symmetric:{sym_sign},dataset_type:{dataset_type}")
                     output_file.write(f"\nsliding_windowID:{sliding_window_id},chrom:{chrom}")
                     output_file.write(f"\noriginal bed lines:\n{bed_lines_str}\n")
@@ -839,9 +843,12 @@ def final_step(list_dict, output_folder):
         sys.exit(1)
     
     combined_dataset = list_dict["dataset_full_overlap"] + list_dict["dataset_symmetric"] + list_dict["dataset_partial_overlap"] + list_dict["dataset_singleton"] + list_dict["dataset_outliers"]
+    # logging.info("combined dataset:")
+    # logging.info(combined_dataset)
     if combined_dataset:
         for idx, dataset in enumerate(combined_dataset):
-            plot_dataset(dataset, idx, tmp_output_folder)
+            # logging.info(idx)
+            plot_dataset(dataset, tmp_output_folder)
         # image_path = os.path.join(tmp_output_folder, "middle_results")
         closest_images = unsupervise_learning(tmp_output_folder, output_folder)
         # Write centroid-to-image mapping to the output file
