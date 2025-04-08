@@ -651,26 +651,39 @@ def process_blocks(dataset_type, blocks, dataset_key, output_file_path, list_dic
     """
     processes different types of dataset and writes the results to a file.
     """
+    fully_overlap_dataset_type = "fo"
+    fully_overlap_dataset_key = "dataset_full_overlap"
+    fully_overlap_file_path = list_dict["file_path_full_overlap"]
+    default_dataset_type = dataset_type
+    default_dataset_key = dataset_key
+    default_output_file_path = output_file_path
     with open(output_file_path, 'a') as output_file:
         for cluster_id, member_ids, indices in blocks:
             selected_bed_lines = get_bed_lines_by_indices(bedfile_partial_df, indices)
             selected_lines = selected_bed_lines.apply(lambda row: '\t'.join(map(str, row)), axis=1).tolist()
-            
-            # extract relevant columns from each line
             data = [(line.split('\t')[0], line.split('\t')[1], line.split('\t')[2], line.split('\t')[6]) for line in selected_lines]
             coverage = sum(int(line.split('\t')[6]) for line in selected_lines)
-            sym_sign, chrom, start, end, length = get_block_details(data, dataset_type)
-            representative_ids = "|".join(map(str,member_ids))
-            if data and selected_lines:
-                list_dict[dataset_key].append(data)
-                bed_lines_str = '\n'.join(selected_lines)
-                block_id += 1
-                output_file.write(f"\nblockID:{block_id},representative_SeqID:{representative_ids},start:{start},end:{end},length:{length},coverage:{coverage},symmetric:{sym_sign},dataset_type:{dataset_type}")
-                output_file.write(f"\nsliding_windowID:{sliding_window_id},chrom:{chrom}")
-                output_file.write(f"\noriginal bed lines:\n{bed_lines_str}\n")
+            ##transfer only 
+            dataset_type = default_dataset_type
+            dataset_key = default_dataset_key
+            output_file_path = default_output_file_path
+            if dataset_type == "s" or dataset_type == "ol":
+                if coverage > 1 and len(selected_lines) == 1:
+                    dataset_type = fully_overlap_dataset_type
+                    dataset_key = fully_overlap_dataset_key
+                    output_file_path = fully_overlap_file_path
+            with open(output_file_path, 'a') as output_file:
+                sym_sign, chrom, start, end, length = get_block_details(data, dataset_type)
+                representative_ids = "|".join(map(str,member_ids))
+                if data and selected_lines:
+                    list_dict[dataset_key].append(data)
+                    bed_lines_str = '\n'.join(selected_lines)
+                    block_id += 1  
+                    output_file.write(f"\nblockID:{block_id},representative_SeqID:{representative_ids},start:{start},end:{end},length:{length},coverage:{coverage},symmetric:{sym_sign},dataset_type:{dataset_type}")
+                    output_file.write(f"\nsliding_windowID:{sliding_window_id},chrom:{chrom}")
+                    output_file.write(f"\noriginal bed lines:\n{bed_lines_str}\n")
+
     return block_id
-
-
 
 def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, symmetric_matrix, output_folder, list_dict, sliding_window_id, block_id):
     # def analyze_tree(output_folder):
@@ -747,7 +760,7 @@ def find_matching_blockid(row, df_sym, tag):
 
 def save_table(output_folder):
     files = ["fully_symmetric_blocks.txt", "fully_overlapping_blocks.txt", 
-             "partially_overlapping_blocks.txt", "singleton_blocks.txt"]
+             "partially_overlapping_blocks.txt", "singleton_blocks.txt", "other_situation_blocks.txt"]
     file_paths = {}
     block_lines = []
     for name in files:
