@@ -614,8 +614,9 @@ def unsupervise_learning(image_paths, output_folder):
     # find the closest image for each centroid
     closest_images = np.argmin(distances, axis=0)
     print("closest_images",closest_images)
+    closest_centroids = np.argmin(distances, axis=1)
 
-    return closest_images
+    return closest_images, closest_centroids
    
 def convert_labels_to_strings(tree):
     #ensure all node labels in the tree are strings
@@ -779,7 +780,7 @@ def save_table(output_folder):
             print(f"Error opening file '{file_paths.get(name, 'UNKNOWN')}': {e}")
             file_contents = None
     #start store in dataframe
-    columns = ["blockID", "representative_SeqID", "start", "end", "clusterID", "length", "coverage", "symmetric", "dataset_type"]
+    columns = ["blockID", "representative_SeqID", "start", "end", "length", "coverage", "symmetric", "dataset_type"]
     data = []
     for block in block_lines:
         pairs = block.split(',')
@@ -802,7 +803,10 @@ def save_table(output_folder):
     df_sym = df_sym.drop(columns=['max_end'])
     df_combined = pd.concat([df_sym, df_not_sym], axis=0, ignore_index=True)
     df_combined = df_combined.sort_values(by="blockID", ascending=True)
-    df_combined.to_csv(os.path.join(output_folder,"final_all_blocks_table.csv"), index=False)   
+    df_closest_cluster  = pd.read_csv(os.path.join(output_folder, "each_image_closest_cluster.csv"), sep=",")
+    df_final = pd.merge(df_combined, df_closest_cluster, on='blockID', how='left')
+    df_final = df_final.sort_values(by="blockID", ascending=True)
+    df_final.to_csv(os.path.join(output_folder,"final_all_blocks_table.csv"), index=False)   
 
 def check_length_condition(value, start_limit, end_limit):
     numbers = list(map(int, value.split('|')))
@@ -850,19 +854,35 @@ def final_step(list_dict, output_folder):
             # logging.info(idx)
             plot_dataset(dataset, tmp_output_folder)
         # image_path = os.path.join(tmp_output_folder, "middle_results")
-        closest_images = unsupervise_learning(tmp_output_folder, output_folder)
+        closest_images,each_image_closest_cluster = unsupervise_learning(tmp_output_folder, output_folder)
+        # logging.info("closest_images")
+        # logging.info(closest_images)
+        # logging.info("each_image_closest_cluster")
+        # logging.info(each_image_closest_cluster)
         # Write centroid-to-image mapping to the output file
         output_file = os.path.join(output_folder, 'image_cluster_mapping.txt')
+        output_file_2 = os.path.join(output_folder, 'each_image_closest_cluster.csv')
         binary_plot_files = [img_path for img_path in listdir(tmp_output_folder) if "binary_plot" in img_path]
         image_names =[]
         with open(output_file, 'w') as f:
             for cluster_idx, img_idx in enumerate(closest_images):
-                img_name_1 = os.path.basename(binary_plot_files[img_idx])  # Get the image name
+                #get the image name
+                img_name_1 = os.path.basename(binary_plot_files[img_idx])
                 img_name_2 = img_name_1.replace("binary", "temp") 
                 image_names.append(img_name_1)
                 image_names.append(img_name_2)
                 f.write(f"Cluster {cluster_idx}: Closest image is {img_name_1},{img_name_2}\n")
         print(f"Cluster-to-image mapping written to {output_file}")
+
+        closest_cluster = []
+        for img_idx,cluster_idx in enumerate(each_image_closest_cluster):
+            img_name = os.path.basename(binary_plot_files[img_idx])
+            block_id = img_name.split('plot_')[1].split('_')[0]
+            closest_cluster.append([int(block_id), int(cluster_idx)])
+        closest_cluster_df = pd.DataFrame(closest_cluster, columns=['blockID','clusterID'])
+        closest_cluster_df.sort_values(by='blockID', inplace=True)
+        closest_cluster_df.to_csv(output_file_2, sep=",",index=False)
+        print(f"every image's with corresponding cluster written to {output_file_2}")
 
         for file_name in image_names:
             source_file = os.path.join(tmp_output_folder, file_name)
