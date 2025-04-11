@@ -134,7 +134,17 @@ Programs and their Required Options:
     - Options:
       -f  <final_form>      
       -m  <blast_score_filter_add_gene>
-      -o <output_folder>          Output folder
+      -o  <output_folder>          Output folder
+
+  simulate_blocks
+    - Simulate the real genome mapping data and segment it into blocks by color using input files 
+        from various block classification categories. The output is a PNG image.
+    - Options:
+      -f   <input_files>              Input files' paths sperate by ";"
+      -n   <number_of_blocks>         Decide how many blocks to simulate.
+      --sg <block_gap_min_threshold>  Min threshold about the gaps between the blocks.
+      --bg <block_gap_max_threshold>  Max threshold about the gaps between the blocks.
+      -o   <output_folder>          Output folder
 
 
   all
@@ -301,6 +311,8 @@ main() {
                     pp)  opts[pp]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     sl)  opts[sl]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     ll)  opts[ll]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    sg)  opts[sg]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    bg)  opts[bg]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     *)   log_error "Invalid option: --$OPTARG"; usage; exit 1 ;;
                 esac ;;
             h) usage ;;
@@ -385,7 +397,6 @@ main() {
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[g]}" "${opts[m]}" "${opts[u]}" "${opts[o]}")"
             run_script "${DIR}/species_function_quantification.sh" "$after_cleaning_code_path" "${paths[@]}"
-            
             ;;
 
         map_mirna)
@@ -461,6 +472,20 @@ main() {
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[f]}" "${opts[m]}" "${opts[o]}")"
             run_script "${DIR}/additional_step.sh" "$after_cleaning_code_path" "${paths[@]}"
+            ;;
+
+        simulate_blocks)
+            check_params f n sg bg o
+            IFS=';' read -r -a input_paths <<< "${opts[f]}"
+            printf "path_f: %s\n" "${opts[f]}"
+            printf "path: %s\n" "${input_paths[@]}"
+            expanded_paths=()
+            for path in "${input_paths[@]}"; do
+                abs_path_result=$(abs_path "$path")
+                printf "abs_path_result: %s\n" "$abs_path_result"
+                expanded_paths+=("$abs_path_result")
+            done
+            run_script "${DIR}/simulation.sh" "$after_cleaning_code_path" "${opts[n]}" "${opts[sg]}" "${opts[bg]}" "$(abs_path "${opts[o]}")" "${#expanded_paths[@]}" "${expanded_paths[@]}"
             ;;
 
         all)
