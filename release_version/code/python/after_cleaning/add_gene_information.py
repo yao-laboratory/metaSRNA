@@ -25,6 +25,7 @@ def add_gene_information_by_every_contig(mapping_file_part, gtf_df_part, output_
     gtf_index = 0
     gtf_index_previous = 0
     for index_s, row_s in mapping_file_part.iterrows():
+        #print(mapping_file_part.at[index_s, "gene_information"])
         #print time for each 10000 rows processed
         print_using_time(index_s, start_time, contig)
         #finish one score line's gene finding
@@ -66,14 +67,19 @@ def add_gene(input_gtf, input_score, temp_folder, output_csv):
     gtf_df["attribute"] = gtf_df["attribute"].str.replace(',', ';')
     print(gtf_df.head())
 
-    mapping_score_df = pd.read_csv(input_score, sep=",")
-    mapping_score_df.columns = ["qseqid", "sacc", "sstart", "send", "evalue", "bitscore", "qcovhsp", "pident"]
-    mapping_score_df["gene_information"] = np.nan
-    mapping_score_df['gene_information'] = mapping_score_df['gene_information'].astype(object)
+    mapping_score_df_original = pd.read_csv(input_score, sep=",")
+    mapping_score_df_original.columns = ["qseqid", "sacc", "sstart", "send", "evalue", "bitscore", "qcovhsp", "pident"]
+    mapping_score_df_original["strand"] = mapping_score_df_original.apply(lambda row: '-' if row['sstart'] > row['send'] else '+', axis=1)
+    mapping_score_df_original["gene_information"] = np.nan
+    mapping_score_df_original['gene_information'] = mapping_score_df_original['gene_information'].astype(object)
     #mapping score file needs reorder
+    mapping_score_df = mapping_score_df_original.copy()
+    mask_reverse = mapping_score_df['sstart'] > mapping_score_df['send']
+    mapping_score_df.loc[mask_reverse, ['sstart', 'send']] = mapping_score_df.loc[mask_reverse, ['send', 'sstart']].values
+
     mapping_score_df.sort_values(by=['sacc', 'sstart', 'send'], ascending=[True, True, True], inplace=True)
     mapping_score_df.reset_index(drop=True, inplace=True)
-    print("mapping_score_df:", mapping_score_df.head())
+    print("mapping_score_df head:", mapping_score_df.head())
     # temp_csv = os.path.join(temp_folder, "blast_score_filter_ordered_temp.csv")
     # temp.to_csv(temp_csv, sep=',', header=True, index=False)
     start_time = time.time() 
@@ -81,25 +87,34 @@ def add_gene(input_gtf, input_score, temp_folder, output_csv):
     temp_final_csv = os.path.join(temp_folder, "blast_score_filter_add_gene_temp.csv")
     with open(temp_final_csv, 'w') as out_file:
         gtf_groups = gtf_df.groupby('seqname')
-        print("gtf_groups:",gtf_groups)
+        # print("gtf_groups:", gtf_groups)
         mapping_score_groups = mapping_score_df.groupby('sacc')
         for contig, mapping_score_group in mapping_score_groups:
             if contig in gtf_groups.groups:
                 ##for each contig pairs, need to reset index
                 mapping_score_group = mapping_score_group.reset_index(drop=True)
                 gtf_group = gtf_groups.get_group(contig).reset_index(drop=True)
+                # print(mapping_score_group)
+                # print(gtf_group)
                 add_gene_information_by_every_contig(mapping_score_group, gtf_group, out_file, start_time, contig)
 
             else:
                 print(f"Contig {contig} in score file not found in gtf")
 
-        # add_gene_information_by_every_contig(temp, gtf_df, output_csv)
+    # add_gene_information_by_every_contig(temp, gtf_df, output_csv)
     temp_final_df = pd.read_csv(temp_final_csv, sep=",", header=None)
-    temp_final_df.columns = ["qseqid", "sacc", "sstart", "send", "evalue", "bitscore", "qcovhsp", "pident", "gene_information"]
+    temp_final_df.columns = ["qseqid", "sacc", "sstart", "send", "evalue", "bitscore", "qcovhsp", "pident", "strand", "gene_information"]
     temp_final_df.sort_values(by=['qseqid', 'sstart', 'send'], ascending=[True, True, True], inplace=True)
     temp_final_df.reset_index(drop=True, inplace=True)
     temp_final_df["gene_information"] = temp_final_df["gene_information"].fillna('nan')
-    temp_final_df.to_csv(output_csv, sep=",", header=None, index=False, quoting=csv.QUOTE_NONE, escapechar='\\')
+
+    final_df = temp_final_df.copy()
+    mask = final_df['strand'] == '-'
+    final_df.loc[mask, ['sstart', 'send']] = final_df.loc[mask, ['send', 'sstart']].values
+    ###if change all mapping file column names, this column can keep it.
+    final_df.drop(columns='strand', inplace=True)
+    final_df.sort_values(by=['qseqid', 'sstart', 'send'], ascending=[True, True, True], inplace=True)
+    final_df.to_csv(output_csv, sep=",", header=None, index=False, quoting=csv.QUOTE_NONE, escapechar='\\')
 
     # if os.path.exists(temp_csv):
         #     os.remove(temp_csv)
