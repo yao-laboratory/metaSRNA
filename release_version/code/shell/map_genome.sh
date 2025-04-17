@@ -38,7 +38,8 @@ blastn -db ${database}/${database_name} -query $clean_fa -num_threads 4 -task bl
 # wc -l $blast_score/blast_score_1db_${bacteria}.txt
 # awk -F, '{print $1}' $blast_score/blast_score_1db_${bacteria}.txt | sort | uniq -c | wc -l
 # awk -F, '($7 >= 80 && $8 >= 90) {print $1}' $blast_score/blast_score_1db_${bacteria}.txt | sort | uniq -c | wc -l
-awk -F, '($7 >= $qcovhsp && $8 >= $pident) {print $0}' $results/blast_score.txt  > $results/blast_score_filter.txt
+awk -F, -v pq=$qcovhsp -v pp=$pident '($7 >= pq && $8 >= pp) {print $0}' $results/blast_score.txt  > $results/blast_score_filter.txt
+# awk -F, '($7 >= $qcovhsp && $8 >= $pident) {print $0}' $results/blast_score.txt  > $results/blast_score_filter.txt
 
 number=$(awk -F, '($7 >= 80 && $8 >= 90) {print $1}' $results/blast_score_filter.txt | sort | uniq -c | wc -l)
 number_2=$(awk -F, '($7 >= 90 && $8 >= 90) {print $1}' $results/blast_score_filter.txt | sort | uniq -c | wc -l)
