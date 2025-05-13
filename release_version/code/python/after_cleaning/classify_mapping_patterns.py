@@ -671,7 +671,7 @@ def process_blocks(dataset_type, blocks, dataset_key, output_file_path, list_dic
             dataset_type = default_dataset_type
             dataset_key = default_dataset_key
             output_file_path = default_output_file_path
-            if dataset_type == "s" or dataset_type == "ol":
+            if dataset_type == "s":
                 if coverage > 1 and len(selected_lines) == 1:
                     dataset_type = fully_overlap_dataset_type
                     dataset_key = fully_overlap_dataset_key
@@ -730,6 +730,7 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, s
     process_block_singleton(tree.root, 0, ids_int, singleton_blocks)
     all_blocks_except_outliers = fully_overlapping_blocks + partially_overlapping_blocks + fully_symmetric_blocks + singleton_blocks
     process_block_outliers(tree.root, 0, ids_int, all_blocks_except_outliers, outliers_blocks)
+    singleton_blocks = singleton_blocks + outliers_blocks
     print("finished calculating tree 3 step",datetime.now() ) 
     logging.info("finished calculating tree 3 step")
 
@@ -738,7 +739,7 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, s
     block_id = process_blocks("c", fully_symmetric_blocks, "dataset_symmetric", list_dict["file_path_symmetric"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
     block_id = process_blocks("po", partially_overlapping_blocks, "dataset_partial_overlap", list_dict["file_path_partial_overlap"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
     block_id = process_blocks("s", singleton_blocks, "dataset_singleton", list_dict["file_path_singleton"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
-    block_id = process_blocks("ol", outliers_blocks, "dataset_outliers", list_dict["file_path_outliers"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
+    # block_id = process_blocks("ol", outliers_blocks, "dataset_outliers", list_dict["file_path_outliers"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
     # # Convert lists to sets and find the intersection
     # qseqid_list.sort()
     # intersection = set(mirdeep2_qseqid_list) & set(qseqid_list)
@@ -765,7 +766,7 @@ def find_matching_blockid(row, df_sym, tag):
 
 def save_table(output_folder):
     files = ["fully_symmetric_blocks.txt", "fully_overlapping_blocks.txt", 
-             "partially_overlapping_blocks.txt", "singleton_blocks.txt", "other_situation_blocks.txt"]
+             "partially_overlapping_blocks.txt", "singleton_blocks.txt"]
     file_paths = {}
     block_lines = []
     for name in files:
@@ -925,13 +926,13 @@ def classify_pattern(bed_file, output_folder):
     ##! need add slide window way to read bed file
     # write the classification results
     list_names = [ "dataset_full_overlap", "dataset_symmetric", "dataset_partial_overlap", "dataset_singleton", "dataset_outliers",  
-                   "file_path_full_overlap", "file_path_symmetric", "file_path_partial_overlap", "file_path_singleton", "file_path_outliers" ]
+                   "file_path_full_overlap", "file_path_symmetric", "file_path_partial_overlap", "file_path_singleton" ]
     list_dict = {name: [] if 'dataset' in name else "" for name in list_names}
     list_dict["file_path_full_overlap"] = os.path.join(output_folder, f"fully_overlapping_blocks.txt")
     list_dict["file_path_symmetric"] = os.path.join(output_folder, f"fully_symmetric_blocks.txt")
     list_dict["file_path_partial_overlap"] = os.path.join(output_folder, f"partially_overlapping_blocks.txt")
     list_dict["file_path_singleton"] = os.path.join(output_folder, f"singleton_blocks.txt")
-    list_dict["file_path_outliers"] = os.path.join(output_folder, "other_situation_blocks.txt")
+    # list_dict["file_path_outliers"] = os.path.join(output_folder, "other_situation_blocks.txt")
     sliding_window_id = 0
     block_id = 0
     i = 0
