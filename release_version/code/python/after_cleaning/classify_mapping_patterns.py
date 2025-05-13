@@ -807,6 +807,7 @@ def save_table(output_folder):
     df_closest_cluster  = pd.read_csv(os.path.join(output_folder, "each_image_closest_cluster.csv"), sep=",")
     df_final = pd.merge(df_combined, df_closest_cluster, on='blockID', how='left')
     df_final = df_final.sort_values(by="blockID", ascending=True)
+    df_final['dataset_type'] = df_final['dataset_type'].replace({'c': 1, 'fo': 2, "po":3, "s":4})
     df_final.to_csv(os.path.join(output_folder,"final_all_blocks_table.csv"), index=False)   
 
 def check_length_condition(value, start_limit, end_limit):
@@ -833,6 +834,7 @@ def save_filtered_table(output_folder, start_limit, end_limit, coverage_limit):
     print("final symmetric number count (include overlap):",len(df_filtered_sym))
     df_filtered_combined = pd.concat([df_filtered_not_sym_no_overlap, df_filtered_sym], axis=0, ignore_index=True)
     df_filtered_combined = df_filtered_combined.sort_values(by="blockID", ascending=True)
+    df_filtered_combined['dataset_type'] = df_filtered_combined['dataset_type'].replace({'c': 1, 'fo': 2, "po":3, "s":4})
     df_filtered_combined.to_csv(os.path.join(output_folder,f"final_filtered_blocks_table_{start_limit}_{end_limit}_{coverage_limit}.csv"), index=False)  
 
 def final_step(list_dict, output_folder):
