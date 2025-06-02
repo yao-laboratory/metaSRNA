@@ -336,6 +336,7 @@ def compute_distance_matrix(sequences, positions, output_folder):
 # recursive classification with top-down approach
 def process_block_fully_overlap(root_clade, cluster_id, overlap_matrix, ids, fully_overlapping_blocks):
     stack = [(root_clade, cluster_id)] 
+    members_set = set()
     while stack:
         current_clade, current_cluster_id = stack.pop()
         terminals = current_clade.get_terminals()
@@ -353,7 +354,12 @@ def process_block_fully_overlap(root_clade, cluster_id, overlap_matrix, ids, ful
             all_overlaps = all(overlap_matrix[i, j] for i, j in pair_indices)
 
         if all_overlaps:
-            fully_overlapping_blocks.append((current_cluster_id, member_ids, indices))
+            # print("member_ids fully overlap before:")
+            # print(member_ids)
+            key = tuple(sorted(member_ids))
+            if key not in members_set:
+                fully_overlapping_blocks.append((current_cluster_id, member_ids, indices))
+                members_set.add(key)
             continue
 
         # add child clades to the stack for further processing
@@ -363,6 +369,7 @@ def process_block_fully_overlap(root_clade, cluster_id, overlap_matrix, ids, ful
 
 def process_block_all_symmetric(root_clade, cluster_id, symmetric_matrix, ids, fully_symmetric_blocks):
     stack = [(root_clade, cluster_id)] 
+    members_set = set()
     while stack:
         current_clade, current_cluster_id = stack.pop()
         terminals = current_clade.get_terminals()
@@ -377,7 +384,14 @@ def process_block_all_symmetric(root_clade, cluster_id, symmetric_matrix, ids, f
             )
 
         if all_symmetric:
-            fully_symmetric_blocks.append((current_cluster_id, member_ids, indices))
+            # print("member_ids symmetric before:")
+            # print(member_ids)
+            key = tuple(sorted(member_ids))
+            if key not in members_set:
+                fully_symmetric_blocks.append((current_cluster_id, member_ids, indices))
+                # print("member_ids symmetric after:")
+                # print(member_ids)
+                members_set.add(key)
             continue
 
         # add child clades to the stack for further processing
@@ -388,6 +402,7 @@ def process_block_all_symmetric(root_clade, cluster_id, symmetric_matrix, ids, f
 # recursive classification with top-down approach
 def process_block_any_overlap(root_clade, cluster_id, overlap_matrix, ids, partially_overlapping_blocks):
     stack = [(root_clade, cluster_id)] 
+    members_set = set()
     while stack:
         current_clade, current_cluster_id = stack.pop()
         terminals = current_clade.get_terminals()
@@ -416,7 +431,12 @@ def process_block_any_overlap(root_clade, cluster_id, overlap_matrix, ids, parti
             continue
 
         if any_overlap:
-            partially_overlapping_blocks.append((current_cluster_id, member_ids, indices))
+            # print("member_ids any overlap before:")
+            # print(member_ids)
+            key = tuple(sorted(member_ids))
+            if key not in members_set:
+                partially_overlapping_blocks.append((current_cluster_id, member_ids, indices))
+                members_set.add(key)
             continue
 
         # add child clades to the stack for further processing
@@ -427,7 +447,7 @@ def process_block_any_overlap(root_clade, cluster_id, overlap_matrix, ids, parti
 def process_block_singleton(root_clade, cluster_id, ids, singleton_blocks):
     logging.info("start singleton tree")
     stack = [(root_clade, cluster_id)] 
-
+    members_set = set()
     while stack:
         current_clade, current_cluster_id = stack.pop()
         terminals = current_clade.get_terminals()
@@ -439,7 +459,12 @@ def process_block_singleton(root_clade, cluster_id, ids, singleton_blocks):
         single = num_sequences == 1
 
         if single:
-            singleton_blocks.append((current_cluster_id, member_ids, indices))
+            # print("member_ids singleton before:")
+            # print(member_ids)
+            key = tuple(sorted(member_ids))
+            if key not in members_set:
+                singleton_blocks.append((current_cluster_id, member_ids, indices))
+                members_set.add(key)
             continue 
 
         for child_clade in current_clade.clades: 
@@ -471,6 +496,8 @@ def process_block_outliers(root_clade, cluster_id, ids, all_blocks_except_outlie
 
     outliers_ids = all_blocks_ids - except_outliers_rep_ids
     for rep_id in outliers_ids:
+        # print("member_ids outliers before:")
+        # print(rep_id)
         # print("outlier rep_id", rep_id)
         outliers_blocks.append((0, [rep_id], [ids.index(rep_id)]))
 
@@ -663,8 +690,12 @@ def process_blocks(dataset_type, blocks, dataset_key, output_file_path, list_dic
     default_output_file_path = output_file_path
     with open(output_file_path, 'a') as output_file:
         for cluster_id, member_ids, indices in blocks:
+            # logging.info("cluster_id, member_ids, indices:")
+            # logging.info(cluster_id, member_ids, indices)
             selected_bed_lines = get_bed_lines_by_indices(bedfile_partial_df, indices)
             selected_lines = selected_bed_lines.apply(lambda row: '\t'.join(map(str, row)), axis=1).tolist()
+            # logging.info("selected_lines:")
+            # logging.info('\n'.join(selected_lines))
             data = [(line.split('\t')[0], line.split('\t')[1], line.split('\t')[2], line.split('\t')[6]) for line in selected_lines]
             coverage = sum(int(line.split('\t')[6]) for line in selected_lines)
             ##transfer only 
@@ -733,7 +764,10 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, s
     singleton_blocks = singleton_blocks + outliers_blocks
     print("finished calculating tree 3 step",datetime.now() ) 
     logging.info("finished calculating tree 3 step")
-
+    # logging.info("fully_overlapping_blocks")
+    # logging.info(fully_overlapping_blocks)
+    # logging.info("fully_symmetric_blocks")
+    # logging.info(fully_symmetric_blocks)
     # Call the function for each cluster type
     block_id = process_blocks("fo", fully_overlapping_blocks, "dataset_full_overlap", list_dict["file_path_full_overlap"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
     block_id = process_blocks("c", fully_symmetric_blocks, "dataset_symmetric", list_dict["file_path_symmetric"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
@@ -808,6 +842,11 @@ def save_table(output_folder):
     df_final = pd.merge(df_combined, df_closest_cluster, on='blockID', how='left')
     df_final = df_final.sort_values(by="blockID", ascending=True)
     df_final['dataset_type'] = df_final['dataset_type'].replace({'c': 1, 'fo': 2, "po":3, "s":4})
+    # df_final['min_start'] = df_final['start'].apply(lambda x: min(map(int, x.split('|'))))
+    # df_final['max_end'] = df_final['end'].apply(lambda x: max(map(int, x.split('|'))))
+    # df_final = df_final.sort_values(by=['min_start', 'max_end'], ascending=[True, True])
+    # df_final = df_final.drop(columns=['min_start'])
+    # df_final = df_final.drop(columns=['max_end'])
     df_final.to_csv(os.path.join(output_folder,"final_all_blocks_table.csv"), index=False)   
 
 def check_length_condition(value, start_limit, end_limit):
@@ -835,6 +874,11 @@ def save_filtered_table(output_folder, start_limit, end_limit, coverage_limit):
     df_filtered_combined = pd.concat([df_filtered_not_sym_no_overlap, df_filtered_sym], axis=0, ignore_index=True)
     df_filtered_combined = df_filtered_combined.sort_values(by="blockID", ascending=True)
     df_filtered_combined['dataset_type'] = df_filtered_combined['dataset_type'].replace({'c': 1, 'fo': 2, "po":3, "s":4})
+    # df_filtered_combined['min_start'] = df_filtered_combined['start'].apply(lambda x: min(map(int, x.split('|'))))
+    # df_filtered_combined['max_end'] = df_filtered_combined['end'].apply(lambda x: max(map(int, x.split('|'))))
+    # df_filtered_combined = df_filtered_combined.sort_values(by=['min_start', 'max_end'], ascending=[True, True])
+    # df_filtered_combined = df_filtered_combined.drop(columns=['min_start'])
+    # df_filtered_combined = df_filtered_combined.drop(columns=['max_end'])
     df_filtered_combined.to_csv(os.path.join(output_folder,f"final_filtered_blocks_table_{start_limit}_{end_limit}_{coverage_limit}.csv"), index=False)  
 
 def final_step(list_dict, output_folder):
