@@ -332,6 +332,16 @@ def compute_distance_matrix(sequences, positions, output_folder):
     print("finished calculating distance 4 step",datetime.now() )
     return dist_matrix, overlap_matrix, symmetric_matrix_dense
 
+#remove subset blocks
+def clean_blocks(blocks):
+    # logging.info("blocks")
+    # logging.info(blocks)
+    cleaned = []
+    for i, (cid_i, mids_i, idx_i) in enumerate(blocks):
+        set_i = set(mids_i)
+        if not any(set_i < set(mids_j) for j, (_, mids_j, _) in enumerate(blocks) if i != j):
+            cleaned.append((cid_i, mids_i, idx_i))
+    return cleaned
 
 # recursive classification with top-down approach
 def process_block_fully_overlap(root_clade, cluster_id, overlap_matrix, ids, fully_overlapping_blocks):
@@ -366,6 +376,7 @@ def process_block_fully_overlap(root_clade, cluster_id, overlap_matrix, ids, ful
         for child_clade in current_clade.clades:  # Use `clades` to access direct children
             if not child_clade.is_terminal():
                 stack.append((child_clade, current_cluster_id + 1))
+
 
 def process_block_all_symmetric(root_clade, cluster_id, symmetric_matrix, ids, fully_symmetric_blocks):
     stack = [(root_clade, cluster_id)] 
@@ -692,6 +703,7 @@ def process_blocks(dataset_type, blocks, dataset_key, output_file_path, list_dic
         for cluster_id, member_ids, indices in blocks:
             # logging.info("cluster_id, member_ids, indices:")
             # logging.info(cluster_id, member_ids, indices)
+            # logging.info(dataset_type)
             selected_bed_lines = get_bed_lines_by_indices(bedfile_partial_df, indices)
             selected_lines = selected_bed_lines.apply(lambda row: '\t'.join(map(str, row)), axis=1).tolist()
             # logging.info("selected_lines:")
@@ -753,11 +765,11 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, s
     outliers_blocks = []
     # other_situation = []
     ids_int = list(map(int, ids))
+    if symmetric_matrix.size >= 2 :
+        process_block_all_symmetric(tree.root, 0, symmetric_matrix, ids_int, fully_symmetric_blocks)
     if overlap_matrix.size >= 2 :
         process_block_fully_overlap(tree.root, 0, overlap_matrix, ids_int, fully_overlapping_blocks)
         process_block_any_overlap(tree.root, 0, overlap_matrix, ids_int, partially_overlapping_blocks)
-    if symmetric_matrix.size >= 2 :
-        process_block_all_symmetric(tree.root, 0, symmetric_matrix, ids_int, fully_symmetric_blocks)
     process_block_singleton(tree.root, 0, ids_int, singleton_blocks)
     all_blocks_except_outliers = fully_overlapping_blocks + partially_overlapping_blocks + fully_symmetric_blocks + singleton_blocks
     process_block_outliers(tree.root, 0, ids_int, all_blocks_except_outliers, outliers_blocks)
@@ -769,6 +781,10 @@ def analyze_tree(bedfile_partial_df, ids, dist_matrix, method, overlap_matrix, s
     # logging.info("fully_symmetric_blocks")
     # logging.info(fully_symmetric_blocks)
     # Call the function for each cluster type
+    fully_overlapping_blocks = clean_blocks(fully_overlapping_blocks)
+    fully_symmetric_blocks = clean_blocks(fully_symmetric_blocks)
+    partially_overlapping_blocks = clean_blocks(partially_overlapping_blocks)
+    singleton_blocks = clean_blocks(singleton_blocks)
     block_id = process_blocks("fo", fully_overlapping_blocks, "dataset_full_overlap", list_dict["file_path_full_overlap"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
     block_id = process_blocks("c", fully_symmetric_blocks, "dataset_symmetric", list_dict["file_path_symmetric"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
     block_id = process_blocks("po", partially_overlapping_blocks, "dataset_partial_overlap", list_dict["file_path_partial_overlap"], list_dict, bedfile_partial_df, sliding_window_id, block_id)
