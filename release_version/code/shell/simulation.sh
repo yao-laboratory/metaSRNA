@@ -28,7 +28,8 @@ simulate_blocks() {
         -number_of_blocks "${blocks_number}" \
         -block_gap_min_threshold "${min_blocks_gap}" \
         -block_gap_max_threshold "${max_blocks_gap}" \
-        -output_folder "${output_folder}" 
+        -output_folder "${output_folder}" \
+        -code_folder "${CODE_PATH_AFTER_CLEAN}"
 
 }
 
