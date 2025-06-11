@@ -106,6 +106,8 @@ def collect_all_blocks_data(simulation_data_folder, files):
     bed_blocks = {}
     for file_name in files:
         file_path = os.path.join(simulation_data_folder, file_name)
+        # print("file_path")
+        # print(file_path)
         bed_blocks[file_name] = []
         try:
             with open(file_path, "r") as file:
@@ -137,8 +139,14 @@ def collect_all_blocks_data(simulation_data_folder, files):
                     elif collecting:
                         columns = line.split('\t')
                         line_block.append([columns[0],columns[1],columns[2],columns[3], columns[4], columns[5], columns[6]])
+        except Exception as e:
+            print(f"Error opening file '{file_path}': {e}")
+
+    return bed_blocks
 
 def cluster_blocks_by_chrom(bed_blocks, files):
+    # print("bed_blocks")
+    # print(bed_blocks)
     group_all = {}
     for file_name in files:
         group = {}
@@ -216,6 +224,12 @@ def generate_all_data(bed_blocks_group_by_chrom, files, blocks_number, smallest_
     return dataset,whole_dataset,whole_simplify_data
 
 def create_bed_file(result, bed_file_path):
+
+    if os.path.isfile(bed_file_path):
+        os.remove(bed_file_path)
+        print(f"{bed_file_path} deleted.")
+    else:
+        print(f"{bed_file_path} does not exist.")
     data = []
     for value_lists in result.values():
         # print("value_lists",value_lists)
@@ -227,32 +241,28 @@ def create_bed_file(result, bed_file_path):
     df.sort_values(by=['chrome', 'start', 'end'], ascending=[True, True, True], inplace=True)
     sorted_data = []
     sorted_data = df.values.tolist()
-
     # write data to the bed file
     with open(bed_file_path, "w") as file:
         for line in sorted_data:
             file.write("\t".join(map(str, line[:-1])) + "\n")
 
 def clean_folder(folder_path):
-    for filename in os.listdir(folder_path):
-        file_path = os.path.join(folder_path, filename)
-        try:
-            if os.path.isfile(file_path) or os.path.islink(file_path):
-                os.unlink(file_path)  # remove file or symlink
-            elif os.path.isdir(file_path):
-                shutil.rmtree(file_path)  # remove folder and all its contents
-        except Exception as e:
-            print(f'Failed to delete {file_path}. Reason: {e}')
+    if os.path.isdir(folder_path):
+        for item in os.listdir(folder_path):
+            item_path = os.path.join(folder_path, item)
+            if os.path.isfile(item_path) or os.path.islink(item_path):
+                os.unlink(item_path)  
+            elif os.path.isdir(item_path):
+                shutil.rmtree(item_path) 
 
 def run_simulation_code(code_folder, bed_file_path, output_folder):
     ##run additonal step
-    clean_folder(os.path.join(output_folder,"results"))
+    clean_folder(os.path.join(output_folder,"temp_results","results"))
     script_path = os.path.join(code_folder, "classify_mapping_patterns.py")
-
     command = [
         "python3", script_path,
         "-input_bedfile", bed_file_path,
-        "-output_folder", os.path.join(output_folder,"results")
+        "-output_folder", os.path.join(output_folder,"temp_results","results")
     ]
 
     subprocess.run(command, check=True)
@@ -480,7 +490,7 @@ def compare_original_and_simulation(output_folder, result, priority_order_list):
     old_blocks = get_df_old_blocks(result)
     print("old_blocks:")
     print(old_blocks)
-    df_new_blocks = pd.read_csv(os.path.join(output_folder, "results","final_all_blocks_table.csv"), sep = ",")
+    df_new_blocks = pd.read_csv(os.path.join(output_folder, "temp_results/results","final_all_blocks_table.csv"), sep = ",")
     print("original new blocks:")
     return_new_blocks = df_new_blocks[["representative_SeqID", "start","end","dataset_type"]]
     new_blocks = df_new_blocks[["start","end","dataset_type"]]
@@ -645,7 +655,7 @@ def simulate_blocks(input_files, number_of_blocks, block_gap_min_threshold, bloc
   
     #plot_dataset(simulation_dataset, number_of_blocks, output_folder)
     ###create simulation data to bed file
-    bed_file_path = os.path.join(output_folder,"sorted_representative_sequence_results_original.bed")
+    bed_file_path = os.path.join(output_folder,"temp_results","sorted_representative_sequence_results_original.bed")
     create_bed_file(whole_dataset, bed_file_path)
     run_simulation_code(code_folder, bed_file_path, output_folder)
     # new_simulation_df = new_simulation_redecide_class(output_folder)
@@ -662,7 +672,7 @@ def simulate_blocks(input_files, number_of_blocks, block_gap_min_threshold, bloc
 
    
     # plot_dataset(original_simulation_dataset, "actual", output_folder)
-    produce_predict_draw_data(original_simulation_dataset, whole_dataset, return_new_blocks, output_folder, run_number)
+    # produce_predict_draw_data(original_simulation_dataset, whole_dataset, return_new_blocks, output_folder, run_number)
     print("whole_simple_dataset start:")
     print(whole_simple_dataset)
     print("whole_simple_dataset end.")
@@ -696,8 +706,8 @@ def simulation_total(input_files, number_of_blocks, block_gap_min_threshold, blo
     for subgraph in two_graph:
         if subgraph == "precision_graph":
                 data_all = precision_all
-            else:
-                data_all = recall_all
+        else:
+            data_all = recall_all
         for i in range(3):
             df = pd.DataFrame(data_all[i])
             # Step 3: Remove % and convert to float

@@ -45,7 +45,7 @@ Programs and their Required Options:
       -F <clean_format>                   Flexible cleaning code pattern
       --t1 <fault_torlerance>             This option sets the number of bits (errors) allowed in the pattern that are not correct.
       --t2 <tail_incomplete_tolerance>    This parameter specifies how many incomplete bits are allowed in the pattern tail.
-      --umi <umi exist flag>              This flag indicates whether a UMI exists, 0: not exist, 1: exsit.
+      --umi <umi exist flag>              This flag indicates whether a UMI exists, 0: not exist, n is exist in nth part(n >1)
 
   detect_species
     - Detect Top nth species in clean fasta data.
@@ -476,6 +476,7 @@ main() {
 
         simulate_blocks)
             check_params f n sg bg o
+            check_create_dir "${opts[o]}/temp_results/results"
             IFS=';' read -r -a input_paths <<< "${opts[f]}"
             printf "path_f: %s\n" "${opts[f]}"
             printf "path: %s\n" "${input_paths[@]}"
