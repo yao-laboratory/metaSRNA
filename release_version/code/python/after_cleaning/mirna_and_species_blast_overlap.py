@@ -73,7 +73,7 @@ def find_overlap(species_mapping_file, folder_path_microRNA, overlap_file):
             # print(total_lines_s[j]['unique_qseqied_column'])
             # if m_filename == s_filename:
             overlap_count = compare_lists(total_lines_m[i]['unique_qseqied_column'], total_lines_s[j]['unique_qseqied_column'])
-            total_final.append({'ovelap-count':overlap_count, 'left-microRNA-count':total_lines_m[i]['unique_qseqid_number_microRNA'] - overlap_count,'right-species-count':total_lines_s[j]['unique_qseqid_number_species'] - overlap_count, 'file_name':"species_mapping_file:"+s_filename + "and mirna_mapping_file:" + m_filename})
+            total_final.append({'ovelap-count':overlap_count, 'left-microRNA-count':total_lines_m[i]['unique_qseqid_number_microRNA'] - overlap_count,'right-species-count':total_lines_s[j]['unique_qseqid_number_species'] - overlap_count, 'file_name':"species_mapping_file's path:"+s_filename + " and mirna_mapping_file's path:" + m_filename})
 
     # print(total_final)
     # Write DataFrame to an Excel file

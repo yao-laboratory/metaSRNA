@@ -61,6 +61,7 @@ Programs and their Required Options:
       --cn <gcf_numbers>  Specify all GCF numbers to download, separated by commas.
       --of <output_folder>    Directory where combined.fna will be stored.
       --og <output_folder>    Directory where combined.gtf will be stored.
+      -n <sraid>              Use SRAID to identify different fna and gtf file.
 
   map_genome
     - Map genome sequences against a reference database.
@@ -371,17 +372,19 @@ main() {
             ;;
         
         detect_species_additional_step)
-            check_params o of og
+            check_params o of og n
             check_create_dir "${opts[o]}/middle_results"
+            check_create_dir "${opts[of]}"
+            check_create_dir "${opts[og]}"
             if [[ -n "${opts[c]}" ]]; then
                 param_flag=0
                 IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[o]}" "${opts[of]}" "${opts[og]}")"
-                run_script "${DIR}/species_detection_additional_step.sh" "$param_flag" "${paths[@]}"
+                run_script "${DIR}/species_detection_additional_step.sh" "$param_flag" "${paths[@]}" "${opts[n]}"
             else
                 check_params cn
                 param_flag=1
                 IFS=' ' read -r -a paths <<< "$(abs_path "${opts[o]}" "${opts[of]}" "${opts[og]}")"
-                run_script "${DIR}/species_detection_additional_step.sh" "$param_flag" "${opts[cn]}" "${paths[@]}"
+                run_script "${DIR}/species_detection_additional_step.sh" "$param_flag" "${opts[cn]}" "${paths[@]}" "${opts[n]}"
             fi
             ;;
         
