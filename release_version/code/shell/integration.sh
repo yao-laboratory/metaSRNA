@@ -24,9 +24,9 @@ is_integer() {
     local value=$1
     [[ $value =~ ^[0-9]+$ ]]
 }
-echo $MIN_LENGTH
+# echo $MIN_LENGTH
 if ! is_integer "$MIN_LENGTH" || ! is_integer "$MAX_LENGTH"; then
-    printf "Error: The shortest length (%s) or longest length (%s) of the sequence is not set or not a valid integer. Defaulting to 18 and 40.\n" "$MIN_LENGTH" "$MAX_LENGTH" >&2
+    printf "Attention: The shortest length (%s) or longest length (%s) of the sequence is not set or not a valid integer. Defaulting to 18 and 40.\n" "$MIN_LENGTH" "$MAX_LENGTH" >&2
     MIN_LENGTH=18
     MAX_LENGTH=40
     # exit 1
@@ -109,5 +109,4 @@ main() {
     ###still have problems, mirna mapping sequence part not unique
     # produce_overlap_analysis "${RESULTS}/blast_score_linearfold_filter.txt" "${MAPPING_MIRNA}" "${RESULTS}/mirna_and_top_species_analysis_unique_sequences.csv"
 }
-
 main "$@"

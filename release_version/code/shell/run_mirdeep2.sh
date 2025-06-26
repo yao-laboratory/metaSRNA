@@ -1,5 +1,7 @@
 #!/bin/bash
 # Exit immediately if any command fails
+source ~/.bashrc
+conda activate cleanfasq_env
 set -e
 
 # Function to delete file if it exists
