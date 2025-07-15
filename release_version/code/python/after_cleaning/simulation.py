@@ -246,7 +246,7 @@ def create_bed_file(result, bed_file_path):
         for line in sorted_data:
             file.write("\t".join(map(str, line[:-1])) + "\n")
 
-def clean_folder(folder_path):
+def clean_contents(folder_path):
     if os.path.isdir(folder_path):
         for item in os.listdir(folder_path):
             item_path = os.path.join(folder_path, item)
@@ -257,7 +257,8 @@ def clean_folder(folder_path):
 
 def run_simulation_code(code_folder, bed_file_path, output_folder):
     ##run additonal step
-    clean_folder(os.path.join(output_folder,"temp_results","results"))
+    clean_contents(os.path.join(output_folder,"temp_results","results"))
+    os.makedirs(os.path.join(output_folder,"temp_results","results/middle_results"), exist_ok=True)
     script_path = os.path.join(code_folder, "classify_mapping_patterns.py")
     command = [
         "python3", script_path,
@@ -663,7 +664,7 @@ def simulate_blocks(input_files, number_of_blocks, block_gap_min_threshold, bloc
     priority_precision_list = []
     priority_recall_list = []
     for order_list in priority_order_list:
-        tp, fp, fn, return_new_blocks = compare_original_and_simulation(output_folder, whole_dataset, priority_order_list)
+        tp, fp, fn, return_new_blocks = compare_original_and_simulation(output_folder, whole_dataset, order_list)
         precision, recall = calculate_precision_recall(tp, fp, fn)
         print("precision and recall")
         print(precision, recall)
@@ -683,9 +684,9 @@ def simulation_total(input_files, number_of_blocks, block_gap_min_threshold, blo
     recall_all = [[], [], []]
   
 
-    for number in range(20):
+    for number in range(10):
         run_number = [block_gap_min_threshold, block_gap_max_threshold, number]
-        seq_id_dataset = deque(range(1, 10001))
+        seq_id_dataset = deque(range(1, 100001))
         precision_single, recall_single = simulate_blocks(
            input_files, number_of_blocks, block_gap_min_threshold, block_gap_max_threshold, output_folder, code_folder, run_number, seq_id_dataset
         )
