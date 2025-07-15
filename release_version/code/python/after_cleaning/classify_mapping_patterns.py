@@ -627,28 +627,37 @@ def unsupervise_learning(image_paths, output_folder):
     kmeans.fit(features_reduced)
     # get the cluster centroids
     centroids = kmeans.cluster_centers_
-    print("centroid", centroids.shape)
-    # get cluster centers and labels
+    print("reduce dimension to 5000's centroid", centroids.shape)
     labels = kmeans.labels_
-
+    
+    ### PCA to 2D for visualization only
+    pca = PCA(n_components=2)
+    features_2d = pca.fit_transform(features_reduced)
+    centroids_2d = pca.transform(kmeans.cluster_centers_)
+    print("after reduce dimension to 2's centroid", centroids_2d.shape)
     # Step 3: visualize the results
     plt.figure(figsize=(8, 6))
-    plt.scatter(features_reduced[:, 0], features_reduced[:, 1], c=labels, cmap='viridis', s=20, alpha=0.6, label='Data Points')
-    plt.scatter(centroids[:, 0], centroids[:, 1], c='red', s=30, marker='X', label='Cluster Centers')
+    ##extract 1/50 points to show up start
+    # plt.scatter(features_2d[::50, 0], features_2d[::50, 1], c=labels[::50], cmap='viridis', s=20, alpha=0.6, label='Sampled Points')
+    # plt.scatter(centroids_2d[:, 0], centroids_2d[:, 1], c='red', s=15, marker='X', label='Cluster Centers')
+    ##extract 1/50 points end
+    plt.scatter(features_2d[:, 0], features_2d[:, 1], c=labels, cmap='viridis', s=20, alpha=0.6, label='Data Points')
+    plt.scatter(centroids_2d[:, 0], centroids_2d[:, 1], c='red', s=15, marker='X', label='Cluster Centers')
+
     plt.title('KMeans Clustering')
     plt.xlabel('Feature 1')
     plt.ylabel('Feature 2')
     plt.savefig(f"{output_folder}/KMeans_plot.png", format='png', dpi=300, bbox_inches='tight')
     # annotate each centroid with "Cluster 0", "Cluster 1"...
-    for i in range(len(centroids)):
-        x = centroids[i, 0]
-        y = centroids[i, 1]
-        plt.annotate(f'Cluster {i}',xy=(x, y),xytext=(x + 0.5, y + 0.5),textcoords='data',fontsize=10,color='black',arrowprops=dict(arrowstyle='->', color='gray'))
+    for i in range(len(centroids_2d)):
+        x = centroids_2d[i, 0]
+        y = centroids_2d[i, 1]
+        plt.annotate(f'{i}',xy=(x, y),xytext=(x + 5, y + 5),textcoords='data',fontsize=10,color='red',arrowprops=dict(arrowstyle='->', color='orange'))
     plt.tight_layout(pad=0.5)
     plt.savefig(f"{output_folder}/KMeans_plot_with_cluster_ids.png", format='png', dpi=300, bbox_inches='tight')    
     plt.close()
     # calculate distances from each image to the centroids
-    distances = euclidean_distances(features_reduced, centroids)
+    distances = euclidean_distances(features_2d, centroids_2d)
     # find the closest image for each centroid
     closest_images = np.argmin(distances, axis=0)
     print("closest_images",closest_images)
