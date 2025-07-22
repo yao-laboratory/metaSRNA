@@ -69,7 +69,7 @@ Programs and their Required Options:
       -f <fna_file>          Path to the FNA file.
       -c <clean_fasta_file>  Path to the cleaned FASTA file.
       -d <database>          Path to the database directory.
-      -n <database_name>     Name of the species combine database.
+      -n <database_name>     Name of the species combined database.
       --pq <qcovhsp>         percentage identity for query coverage per HSP (High Scoring Pair)in alignment blast.
       --pp <pident>          percentage identity in the alignment blast.
       -o <output_folder>     Output folder including (filter score results about mapping top species database and analysis csv about percentage of mapping)
@@ -145,6 +145,9 @@ Programs and their Required Options:
       -n   <number_of_blocks>         Decide how many blocks to simulate.
       --sg <block_gap_min_threshold>  Min threshold about the gaps between the blocks.
       --bg <block_gap_max_threshold>  Max threshold about the gaps between the blocks.
+      -t   <simulation_times>         simulate n times, precision/recall figures are the final output.
+      -d   <selective produce figures>0: for small simulation data: only produce clustering figure, not produce precision/recall figures; 
+                                      1: for big simulation data: opposite,only produce precision/recall figures.
       -o   <output_folder>          Output folder
 
 
@@ -478,7 +481,7 @@ main() {
             ;;
 
         simulate_blocks)
-            check_params f n sg bg o
+            check_params f n sg bg t d o
             check_create_dir "${opts[o]}/temp_results/results"
             IFS=';' read -r -a input_paths <<< "${opts[f]}"
             printf "path_f: %s\n" "${opts[f]}"
@@ -489,7 +492,7 @@ main() {
                 printf "abs_path_result: %s\n" "$abs_path_result"
                 expanded_paths+=("$abs_path_result")
             done
-            run_script "${DIR}/simulation.sh" "$after_cleaning_code_path" "${opts[n]}" "${opts[sg]}" "${opts[bg]}" "$(abs_path "${opts[o]}")" "${#expanded_paths[@]}" "${expanded_paths[@]}"
+            run_script "${DIR}/simulation.sh" "$after_cleaning_code_path" "${opts[n]}" "${opts[sg]}" "${opts[bg]}" "${opts[t]}" "${opts[d]}" "$(abs_path "${opts[o]}")" "${#expanded_paths[@]}" "${expanded_paths[@]}"
             ;;
 
         all)

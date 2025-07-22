@@ -20,6 +20,7 @@ def merge_intervals(intervals):
     tree.merge_overlaps() 
     #return list (not tuple) 
     return sorted((iv.begin, iv.end) for iv in tree)
+
 # draw n subgraphs using the structure of 'original'.
 def plot_multiple_datasets(dataset_list, name_list, output_folder, run_number):
     if "original" not in name_list:
@@ -99,7 +100,10 @@ def plot_multiple_datasets(dataset_list, name_list, output_folder, run_number):
 
     axes[-1].set_xlabel("Genome Position")
     plt.tight_layout()
-    plt.savefig(f"{output_folder}/simulation_{run_number[0]}_{run_number[1]}_gaps_final_blocks_{run_number[3]}.png", dpi=300, bbox_inches='tight')
+    print("run_number:")
+    print(run_number)
+    plt.savefig(f"{output_folder}/gaps_between_{run_number[0]}_{run_number[1]}_simulation_times_{run_number[2]}_final_blocks_clutering.png", dpi=300, bbox_inches='tight')
+    # plt.savefig(f"{output_folder}/simulation.png", dpi=300, bbox_inches='tight')
     plt.close()
 
 def collect_all_blocks_data(simulation_data_folder, files):
@@ -492,6 +496,8 @@ def compare_original_and_simulation(output_folder, result, priority_order_list):
     print("old_blocks:")
     print(old_blocks)
     df_new_blocks = pd.read_csv(os.path.join(output_folder, "temp_results/results","final_all_blocks_table.csv"), sep = ",")
+    df_new_blocks.rename(columns={'dataset_type(1:symmetric,2:fully overlap,3:partially overlap,4:singleton)':'dataset_type'}, inplace=True)
+
     print("original new blocks:")
     return_new_blocks = df_new_blocks[["representative_SeqID", "start","end","dataset_type"]]
     new_blocks = df_new_blocks[["start","end","dataset_type"]]
@@ -631,7 +637,7 @@ def produce_predict_draw_data(original_simulation_dataset, whole_dataset, new_bl
 
     plot_multiple_datasets(datasets, titles, output_folder, run_number)
 
-def simulate_blocks(input_files, number_of_blocks, block_gap_min_threshold, block_gap_max_threshold, output_folder, code_folder, run_number, seq_id_dataset):
+def simulate_blocks(input_files, number_of_blocks, block_gap_min_threshold, block_gap_max_threshold, output_folder, code_folder, run_number, seq_id_dataset, drawing_flag):
     #prepare all the data
     input_files_list = input_files.split()
     if not input_files_list:
@@ -660,7 +666,7 @@ def simulate_blocks(input_files, number_of_blocks, block_gap_min_threshold, bloc
     create_bed_file(whole_dataset, bed_file_path)
     run_simulation_code(code_folder, bed_file_path, output_folder)
     # new_simulation_df = new_simulation_redecide_class(output_folder)
-    priority_order_list = [['1', '3', '2', '4'],['1', '2', '3', '4'],['3', '1', '2', '4']]
+    priority_order_list = [['1', '3', '2', '4'],['1', '2', '3', '4'],['3', '1', '2', '4'],['3', '4', '1', '2'],['4', '3', '1', '2'],['3', '4', '2', '1']]
     priority_precision_list = []
     priority_recall_list = []
     for order_list in priority_order_list:
@@ -671,66 +677,99 @@ def simulate_blocks(input_files, number_of_blocks, block_gap_min_threshold, bloc
         priority_precision_list.append(precision)
         priority_recall_list.append(recall)
 
-   
-    # plot_dataset(original_simulation_dataset, "actual", output_folder)
-    # produce_predict_draw_data(original_simulation_dataset, whole_dataset, return_new_blocks, output_folder, run_number)
+    if drawing_flag == 0:
+        # plot_dataset(original_simulation_dataset, "actual", output_folder)
+        produce_predict_draw_data(original_simulation_dataset, whole_dataset, return_new_blocks, output_folder, run_number)
+        return 
     print("whole_simple_dataset start:")
     print(whole_simple_dataset)
     print("whole_simple_dataset end.")
     return priority_precision_list,priority_recall_list
 
-def simulation_total(input_files, number_of_blocks, block_gap_min_threshold, block_gap_max_threshold, output_folder, code_folder):
-    precision_all = [[], [], []]
-    recall_all = [[], [], []]
-  
+def simulation_total(input_files, number_of_blocks, block_gap_min_threshold, block_gap_max_threshold, simulation_times, drawing_flag, output_folder, code_folder):
+    if drawing_flag == 0:
+        for number in range(simulation_times):
+            run_number = [block_gap_min_threshold, block_gap_max_threshold, number]
+            seq_id_dataset = deque(range(1, 100001))
+            simulate_blocks(
+            input_files, number_of_blocks, block_gap_min_threshold, block_gap_max_threshold, output_folder, code_folder, run_number, seq_id_dataset, drawing_flag
+            )
+    else:
+        precision_all = [[], [], [], [], [], []]
+        recall_all = [[], [], [], [], [], []]
 
-    for number in range(10):
-        run_number = [block_gap_min_threshold, block_gap_max_threshold, number]
-        seq_id_dataset = deque(range(1, 100001))
-        precision_single, recall_single = simulate_blocks(
-           input_files, number_of_blocks, block_gap_min_threshold, block_gap_max_threshold, output_folder, code_folder, run_number, seq_id_dataset
-        )
-        for i in range(3):
-            precision_all[i].append(precision_single[i])
-            recall_all[i].append(recall_single[i])
+        for number in range(simulation_times):
+            run_number = [block_gap_min_threshold, block_gap_max_threshold, number]
+            seq_id_dataset = deque(range(1, 100001))
+            precision_single, recall_single = simulate_blocks(
+            input_files, number_of_blocks, block_gap_min_threshold, block_gap_max_threshold, output_folder, code_folder, run_number, seq_id_dataset, drawing_flag
+            )
 
-    # precision =[]
-    # recall = []
-    # data = []
-    # for i in range(20):
-    #     precision_single, recall_single = simulate_blocks(input_files, number_of_blocks, block_gap_min_threshold, block_gap_max_threshold, output_folder, code_folder)
-    #     precision.append(precision_single)
-    #     recall.append(recall_single)
-    
-    two_graph = ["precision_graph", "recall_graph"]
-    data_all =  []
-    for subgraph in two_graph:
-        if subgraph == "precision_graph":
-                data_all = precision_all
-        else:
-            data_all = recall_all
-        for i in range(3):
-            df = pd.DataFrame(data_all[i])
-            # Step 3: Remove % and convert to float
-            df = df.applymap(lambda x: float(str(x).replace('%', '')))
+            for i in range(6):
+                precision_all[i].append(precision_single[i])
+                recall_all[i].append(recall_single[i])
 
-            # Step 4: Convert to long format for seaborn
-            df_long = df.melt(var_name='Box', value_name='Score')
+        # precision =[]
+        # recall = []
+        # data = []
+        # for i in range(20):
+        #     precision_single, recall_single = simulate_blocks(input_files, number_of_blocks, block_gap_min_threshold, block_gap_max_threshold, output_folder, code_folder)
+        #     precision.append(precision_single)
+        #     recall.append(recall_single)
+        
+        two_graph = ["precision_graph", "recall_graph"]
+        data_all =  []
+        for subgraph in two_graph:
+            if subgraph == "precision_graph":
+                    data_all = precision_all
+            else:
+                data_all = recall_all
+            for i in range(6):
+                df = pd.DataFrame(data_all[i])
+                # Step 3: Remove % and convert to float
+                # df = df.applymap(lambda x: float(str(x).replace('%', '')))
+                df = df.apply(lambda col: col.map(lambda x: float(str(x).replace('%', ''))))
 
-            # Step 5: Plot
-            plt.figure(figsize=(8, 6))
-            sns.boxplot(x='Box', y='Score', data=df_long, width=0.5, showfliers=False)
-            sns.stripplot(x='Box', y='Score', data=df_long, color='black', size=5, jitter=True)
 
-            plt.ylim(0, 100)
-            plt.yticks(range(0, 101, 10))
-            plt.ylabel("Score (%)")
-            plt.title("Boxplot of Percentage Scores")
-            plt.grid(True, axis='y', linestyle='--', alpha=0.5)
-            plt.tight_layout()
-            # plt.show()
-            plt.savefig(f"{output_folder}/boxplot_{subgraph}_priority_list_{i}.png", format='png', dpi=300, bbox_inches='tight')    
-            plt.close()
+                # Step 4: Convert to long format for seaborn
+                df_long = df.melt(var_name='Box', value_name='Score')
+                print("df_long:")
+                print(df_long)
+                # Step 5: Plot
+                plt.figure(figsize=(8, 6))
+                # 1:symmetric,2:fully overlap,3:partially overlap,4:singleton
+                label_map = {
+                    1: "symmetric",
+                    2: "fully_overlap",
+                    3: "partially_overlap",
+                    4: "singleton"
+                }
+                df_long['Box'] = df_long['Box'].map(label_map)
+                box_palette = {
+                    "symmetric": "#84D1D1",
+                    "fully_overlap": "#B6DE66",
+                    "partially_overlap": "#F4E75E",
+                    "singleton": "#9587BD"
+                }
+                sns.boxplot(
+                    x='Box', y='Score', data=df_long,
+                    hue='Box', palette=box_palette,
+                    width=0.5, showfliers=False, legend=False
+                )
+                sns.stripplot(x='Box', y='Score', data=df_long, color='black', size=5, jitter=True)
+
+                plt.ylim(0, 100)
+                plt.yticks(range(0, 101, 10))
+                plt.ylabel("Score (%)")
+                if subgraph == "precision_graph":
+                    plt.title("Boxplot of Precision Score Percentage")
+                else:
+                    plt.title("Boxplot of Recall Score Percentage")
+                plt.grid(True, axis='y', linestyle='--', alpha=0.5)
+                plt.tight_layout()
+                # plt.show()
+                plt.savefig(f"{output_folder}/boxplot_{subgraph}_priority_list_{i}.png", format='png', dpi=300, bbox_inches='tight')    
+                plt.close()
 
 
 def parse_arguments():
@@ -743,6 +782,10 @@ def parse_arguments():
                         type=str, help='Min threshold about the gaps between the blocks.')
     parser.add_argument('-block_gap_max_threshold', required=False,
                         type=str, help='Max threshold about the gaps between the blocks.')
+    parser.add_argument('-simulation_times', required=False,
+            type=str, help='simulate n times, precision/recall figures are the final output.')
+    parser.add_argument('-drawing_flag', required=False,
+                    type=str, help='selective produce figures,0: only produce clustering figure; 1:opposite,only produce precision/recall figures.')
     parser.add_argument('-output_folder', required=True,
                         type=str, help='output resutls folder path')
     parser.add_argument('-code_folder', required=True,
@@ -753,9 +796,9 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    if args.input_files and args.number_of_blocks and args.block_gap_min_threshold and args.block_gap_max_threshold and args.output_folder and args.code_folder:
+    if args.input_files and args.number_of_blocks and args.block_gap_min_threshold and args.block_gap_max_threshold and args.simulation_times and args.drawing_flag and args.output_folder and args.code_folder:
         # time_start_s = time.time()
-        simulation_total(args.input_files, args.number_of_blocks, args.block_gap_min_threshold, args.block_gap_max_threshold, args.output_folder, args.code_folder)
+        simulation_total(args.input_files, args.number_of_blocks, args.block_gap_min_threshold, args.block_gap_max_threshold, int(args.simulation_times), int(args.drawing_flag), args.output_folder, args.code_folder)
         # time_end_s = time.time()
         # time_c = time_end_s - time_start_s
         # print('time cost', time_c, 's')
