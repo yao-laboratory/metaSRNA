@@ -872,7 +872,8 @@ def save_table(output_folder):
     df_final = df_final.sort_values(by=['min_start', 'max_end'], ascending=[True, True])
     df_final = df_final.drop(columns=['min_start'])
     df_final = df_final.drop(columns=['max_end'])
-    df_final.to_csv(os.path.join(output_folder,"final_all_blocks_table.csv"), index=False)   
+    df_final.rename(columns={'dataset_type': 'dataset_type(1:symmetric,2:fully overlap,3:partially overlap,4:singleton)'}, inplace=True)
+    df_final.to_csv(os.path.join(output_folder,"final_all_blocks_table.csv"), index=False, quoting=1)   
 
 def check_length_condition(value, start_limit, end_limit):
     numbers = list(map(int, value.split('|')))
@@ -898,13 +899,13 @@ def save_filtered_table(output_folder, start_limit, end_limit, coverage_limit):
     print("final symmetric number count (include overlap):",len(df_filtered_sym))
     df_filtered_combined = pd.concat([df_filtered_not_sym_no_overlap, df_filtered_sym], axis=0, ignore_index=True)
     df_filtered_combined = df_filtered_combined.sort_values(by="blockID", ascending=True)
-    df_filtered_combined['dataset_type'] = df_filtered_combined['dataset_type'].replace({'c': 1, 'fo': 2, "po":3, "s":4})
+    # df_filtered_combined['dataset_type'] = df_filtered_combined['dataset_type'].replace({'c': 1, 'fo': 2, "po":3, "s":4})
     df_filtered_combined['min_start'] = df_filtered_combined['start'].apply(lambda x: min(map(int, x.split('|'))))
     df_filtered_combined['max_end'] = df_filtered_combined['end'].apply(lambda x: max(map(int, x.split('|'))))
     df_filtered_combined = df_filtered_combined.sort_values(by=['min_start', 'max_end'], ascending=[True, True])
     df_filtered_combined = df_filtered_combined.drop(columns=['min_start'])
     df_filtered_combined = df_filtered_combined.drop(columns=['max_end'])
-    df_filtered_combined.to_csv(os.path.join(output_folder,f"final_filtered_blocks_table_{start_limit}_{end_limit}_{coverage_limit}.csv"), index=False)  
+    df_filtered_combined.to_csv(os.path.join(output_folder,f"final_unique_miRNAs_table_start_end_between_{start_limit}_{end_limit}_coverage_bigger_than_{coverage_limit}.csv"), index=False)  
 
 def final_step(list_dict, output_folder):
     tmp_output_folder = "/tmp/mzhou10/image_results"
@@ -974,7 +975,8 @@ def final_step(list_dict, output_folder):
         print(f"After finishing, the folder {tmp_output_folder} is not readable.")
 
     save_table(output_folder)
-    save_filtered_table(output_folder,18,30,1)
+    save_filtered_table(output_folder,16,30,1)
+    save_filtered_table(output_folder,16,30,10)
 
 
 def classify_pattern(bed_file, output_folder):
