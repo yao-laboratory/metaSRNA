@@ -104,8 +104,8 @@ Programs and their Required Options:
       -s <species_file>      Path to the top species mapping score file.
       -m <mirna_file>        Path to the miRNA mapping score file.
       -u <umi_file>          Path to the UMI file.
-      --sl <shortest_sequence_length> Require the shortest sequence length in cleaned fasta file. If donnot use this parameter, default is 18.
-      --ll <longest_sequence_legnth> Require the longest sequence length in cleaned fasta file. If donnot use this parameter, default is 40.
+      --sl <shortest_sequence_length> Require the shortest sequence length in cleaned fasta file. If do not use this parameter, default is 18.
+      --ll <longest_sequence_legnth>  Require the longest sequence length in cleaned fasta file. If do not use this parameter, default is 40.
       -o <output_folder>     Output folder including (analysis csv about how many seqid, percentage for overlapping)
 
   predict
@@ -128,14 +128,18 @@ Programs and their Required Options:
       --inf <duplicate_sequences_information> Path to file about duplicate sequences information.
       --mr <mirdeep_result>        Path to folder about mirdeep2 prediction result.
       --lf <linearfold_result>     Path to file about linearfold prediction results.
-      -o <output_folder>          Output folder
+      -o <output_folder>           Output folder
     
   additional_step
     - additional_function
     - Options:
-      -f  <final_form>      
-      -m  <blast_score_filter_add_gene>
-      -o  <output_folder>          Output folder
+      -f   <final_form>                      Path to the file containing all unique final sequence information, generated from the produce_final_form step.
+      -m   <blast_score_filter_add_gene>     Path to the blast results in map_genome step with addtional gene information.
+      --sl <shortest_block_length>           Require the shortest block length in the final filtered blocks table. If do not use this parameter, default is 18.
+      --ll <longest_block_length>            Require the longest block length in the final filtered blocks table. If do not use this parameter, default is 30.
+      --sc <block_sequences_count_threshold> Each block in the final filtered blocks table must contain a sequence count greater than(>) this threshold.
+                                             (default threshold is 1,10; this parameter n makes threshold become 1,n)
+      -o   <output_folder>                   Output folder
 
   simulate_blocks
     - Simulate the real genome mapping data and segment it into blocks by color using input files 
@@ -314,6 +318,7 @@ main() {
                     pq)  opts[pq]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     pp)  opts[pp]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     sl)  opts[sl]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    sc)  opts[sc]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     ll)  opts[ll]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     sg)  opts[sg]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     bg)  opts[bg]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
@@ -477,7 +482,7 @@ main() {
             check_params f m
             check_create_dir "${opts[o]}/middle_results"
             IFS=' ' read -r -a paths <<< "$(abs_path "${opts[f]}" "${opts[m]}" "${opts[o]}")"
-            run_script "${DIR}/additional_step.sh" "$after_cleaning_code_path" "${paths[@]}"
+            run_script "${DIR}/additional_step.sh" "$after_cleaning_code_path"  "${opts[sl]}" "${opts[ll]}" "${opts[sc]}" "${paths[@]}"
             ;;
 
         simulate_blocks)
@@ -496,7 +501,7 @@ main() {
             ;;
 
         all)
-            log_message "Running all processes."
+            log_message "Running require steps fromn extract to produce final_form processes.(not include optional steps: preprocess, detect_species, addtional_steps, simulate_block)"
             # Implement calls to all functions here
             ;;
 

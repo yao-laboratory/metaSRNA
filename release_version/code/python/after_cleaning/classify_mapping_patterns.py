@@ -866,7 +866,7 @@ def save_table(output_folder):
     df_closest_cluster  = pd.read_csv(os.path.join(output_folder, "each_image_closest_cluster.csv"), sep=",")
     df_final = pd.merge(df_combined, df_closest_cluster, on='blockID', how='left')
     df_final = df_final.sort_values(by="blockID", ascending=True)
-    df_final['dataset_type'] = df_final['dataset_type'].replace({'c': 1, 'fo': 2, "po":3, "s":4})
+    df_final['dataset_type'] = df_final['dataset_type'].replace({'c': 1, 'fo': 2, 'po':3, 's':4})
     df_final['min_start'] = df_final['start'].apply(lambda x: min(map(int, x.split('|'))))
     df_final['max_end'] = df_final['end'].apply(lambda x: max(map(int, x.split('|'))))
     df_final = df_final.sort_values(by=['min_start', 'max_end'], ascending=[True, True])
@@ -905,9 +905,9 @@ def save_filtered_table(output_folder, start_limit, end_limit, coverage_limit):
     df_filtered_combined = df_filtered_combined.sort_values(by=['min_start', 'max_end'], ascending=[True, True])
     df_filtered_combined = df_filtered_combined.drop(columns=['min_start'])
     df_filtered_combined = df_filtered_combined.drop(columns=['max_end'])
-    df_filtered_combined.to_csv(os.path.join(output_folder,f"final_unique_miRNAs_table_start_end_between_{start_limit}_{end_limit}_coverage_bigger_than_{coverage_limit}.csv"), index=False)  
+    df_filtered_combined.to_csv(os.path.join(output_folder,f"final_unique_miRNAs_table_block_size_between_{start_limit}_{end_limit}_coverage_bigger_than_{coverage_limit}.csv"), index=False)  
 
-def final_step(list_dict, output_folder):
+def final_step(list_dict, output_folder, min_block_length, max_block_length, min_block_sequences_count):
     tmp_output_folder = "/tmp/mzhou10/image_results"
     if os.path.exists(tmp_output_folder):
         shutil.rmtree(tmp_output_folder)  # Remove all contents of the folder
@@ -975,11 +975,12 @@ def final_step(list_dict, output_folder):
         print(f"After finishing, the folder {tmp_output_folder} is not readable.")
 
     save_table(output_folder)
-    save_filtered_table(output_folder,16,30,1)
-    save_filtered_table(output_folder,16,30,10)
+    
+    save_filtered_table(output_folder,min_block_length,max_block_length,1)
+    save_filtered_table(output_folder,min_block_length,max_block_length,min_block_sequences_count)
 
 
-def classify_pattern(bed_file, output_folder):
+def classify_pattern(bed_file, output_folder, min_block_length, max_block_length, min_block_sequences_count):
     # print("1")
     log_filename = os.path.join(output_folder, "my_log_file.log")  # Specify the log file
     logging.basicConfig(
@@ -1034,13 +1035,19 @@ def classify_pattern(bed_file, output_folder):
                 print("dist_matrix empty")
                 print(ids, sequences, positions, bedfile_partial_df, dist_matrix)  
     
-    final_step(list_dict, output_folder)
+    final_step(list_dict, output_folder, min_block_length, max_block_length, min_block_sequences_count)
     print("4")
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="claassify mapping patterns")
     parser.add_argument('-input_bedfile', required=False,
                         type=str, help='input bed file in additional step')
+    parser.add_argument('-min_block_length', required=False,
+                        type=str, help='Require the shortest block length in the final filtered blocks table. If do not use this parameter, default is 18.')
+    parser.add_argument('-max_block_length', required=False,
+                        type=str, help='Require the longest block length in the final filtered blocks table. If do not use this parameter, default is 30.')
+    parser.add_argument('-min_block_sequences_count', required=False,
+                        type=str, help='Each block in the final filtered blocks table must contain a sequence count greater than this threshold.(default threshold is 1,10; this parameter n  makes threshold become 1,n)')
     parser.add_argument('-output_folder', required=True,
                         type=str, help='output resutls folder path')
 
@@ -1049,9 +1056,9 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    if args.input_bedfile and args.output_folder:
+    if args.input_bedfile and args.output_folder and args.min_block_length is not None and args.max_block_length is not None and args.min_block_sequences_count is not None:
         time_start_s = datetime.now()
-        classify_pattern(args.input_bedfile, args.output_folder)
+        classify_pattern(args.input_bedfile, args.output_folder, int(args.min_block_length), int(args.max_block_length), int(args.min_block_sequences_count))
         time_end_s = datetime.now()
         time_c = time_end_s - time_start_s
         print('time cost', time_c, 's')

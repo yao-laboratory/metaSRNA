@@ -86,7 +86,7 @@ def main():
         min_length = args.filter_min_length
         max_length = args.filter_max_length
         time_start_s = time.time()
-        process_length(input_file, output_folder, min_length, max_length)
+        process_length(input_file, output_folder, int(min_length), int(max_length))
         time_end_s = time.time()
         time_c = time_end_s - time_start_s
         print('time cost', time_c, 's')

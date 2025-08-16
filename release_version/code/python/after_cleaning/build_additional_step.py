@@ -62,6 +62,7 @@ def produce_form(final_form, mapping_with_genes_file, output_folder):
     df = {name: pd.DataFrame() for name in df_names}
     #step1
     df_result_form = pd.read_csv(final_form, sep=',')
+    ###need to keep meet at least one of the conditions
     df["result_form"] = df_result_form[(df_result_form['mirBase'] == 1) | (df_result_form['linearfold'] == 1) | (df_result_form['mirdeep2'] == 1)]
     df["result_form"] = df["result_form"].rename(columns={'representative_id': 'qseqid'})
     print("df['result_form']:\n", df["result_form"])
@@ -70,6 +71,7 @@ def produce_form(final_form, mapping_with_genes_file, output_folder):
     df_mapping = pd.read_csv(mapping_with_genes_file, sep=',', low_memory=False)
     df_mapping.columns = ["qseqid", "sacc", "sstart", "send", "evalue", "bitscore", "coverage", "identity", "overlap_gene"]
     df_filter = df_mapping[(df_mapping['coverage'] >= 90) & (df_mapping['identity'] >= 90)]
+    # df_filter = df_mapping
     df_sorted = df_filter.sort_values(by=['qseqid', 'coverage', 'identity'], ascending=[True, False, False])
     df_unique_mapping = df_sorted.drop_duplicates(subset='qseqid', keep='first').reset_index(drop=True)
     df['result_mapping'] = df_unique_mapping[["qseqid", "sacc", "coverage", "identity", "overlap_gene", "sstart", "send"]]
