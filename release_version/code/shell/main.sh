@@ -41,8 +41,8 @@ Programs and their Required Options:
     - Options:
       -r <raw_data>                       Path to the raw data file.
       -l <filter_minimum_length>          raw data fitering minimum length condition
-      -o <output_folder>                  Output folder including (clean fasta file and corresponding umi file)
-      -F <clean_format>                   Flexible cleaning code pattern
+      -o <output_folder>                  Output folder including (clean fasta file and corresponding umi file).
+      -F <clean_format>                   Flexible cleaning pattern, if no need clean, add "clean".
       --t1 <fault_torlerance>             This option sets the number of bits (errors) allowed in the pattern that are not correct.
       --t2 <tail_incomplete_tolerance>    This parameter specifies how many incomplete bits are allowed in the pattern tail.
       --umi <umi exist flag>              This flag indicates whether a UMI exists, 0: not exist, n is exist in nth part(n >1)
@@ -57,8 +57,8 @@ Programs and their Required Options:
   detect_species_additional_step
     - download the top N species' FNA and GTF files, then combine them into combined.fna and combined.gtf.
     - Options:
-      -c <gcf_files>.     File generated from detect_species step called mapping.csv.
-      --cn <gcf_numbers>  Specify all GCF numbers to download, separated by commas.
+      -c  <gcf_files>         File generated from detect_species step called mapping.csv.
+      --cn <gcf_numbers>      Specify all GCF numbers to download, separated by commas.
       --of <output_folder>    Directory where combined.fna will be stored.
       --og <output_folder>    Directory where combined.gtf will be stored.
       -n <sraid>              Use SRAID to identify different fna and gtf file.
@@ -66,10 +66,10 @@ Programs and their Required Options:
   map_genome
     - Map genome sequences against a reference database.
     - Options:
-      -f <fna_file>          Path to the FNA file.
+      -f <fna_file>          Path to the reference genome in .fna format (from NCBI RefSeq/GenBank).
       -c <clean_fasta_file>  Path to the cleaned FASTA file.
-      -d <database>          Path to the database directory.
-      -n <database_name>     Name of the species combined database.
+      -d <database>          Path to the local indexed database built from above reference genome file.
+      -n <database_name>     Name of this local indexed (species combined) database.
       --pq <qcovhsp>         percentage identity for query coverage per HSP (High Scoring Pair)in alignment blast.
       --pp <pident>          percentage identity in the alignment blast.
       -o <output_folder>     Output folder including (filter score results about mapping top species database and analysis csv about percentage of mapping)
@@ -85,10 +85,11 @@ Programs and their Required Options:
   map_mirna
     - Map microRNA data to a reference.
     - Options:
-      -c <clean_fasta_file> Path to the clean FASTA file.
-      -d <database>         Path to the database directory.
-      -n <database_name>    Name of the miRNA database.
-      -o <output_folder>    Output folder including (filter score results about mapping hairpin database and analysis csv about percentage of mapping)
+      -f <reference_hairpin_fa> Path to the reference file of precursor miRNA (pre-miRNA) stem–loop sequences, downloaded from the miRBase database (in .fa format).
+      -c <clean_fasta_file>     Path to the clean FASTA file.
+      -d <database>             Path to the indexed local database built from hairpin.fa
+      -n <database_name>        Name of the miRNA database.
+      -o <output_folder>        Output folder including (filter score results about mapping hairpin database and analysis csv about percentage of mapping)
 
   quantify_mirna
     - Quantify the analysis results based on miRNA mapped data.
@@ -152,11 +153,27 @@ Programs and their Required Options:
       -t   <simulation_times>         simulate n times, precision/recall figures are the final output.
       -d   <selective produce figures>0: for small simulation data: only produce clustering figure, not produce precision/recall figures; 
                                       1: for big simulation data: opposite,only produce precision/recall figures.
-      -o   <output_folder>          Output folder
+      -o   <output_folder>            Output folder
 
 
   all
-    - Execute all available processes sequentially.
+    - Running require steps fromn extract step to produce final_form step.(!not include optional steps: preprocess, detect_species, addtional_steps, simulate_block)
+    - Options:
+      -r <raw_data>                       Path to the raw data file.
+      -l <filter_minimum_length>          raw data fitering minimum length condition only in (before integration step)
+      -F <clean_format>                   Flexible cleaning pattern, if no need clean, add "clean".
+      -n <database_name>                  Name of the local indexed database built from reference genome or (genomes:species combined) in .fna format.
+      --t1 <fault_torlerance>             This option sets the number of bits (errors) allowed in the pattern that are not correct.
+      --t2 <tail_incomplete_tolerance>    This parameter specifies how many incomplete bits are allowed in the pattern tail.
+      --umi <umi exist flag>              This flag indicates whether a UMI exists, 0: not exist, n is exist in nth part(n >1)
+      --pq <qcovhsp>                      percentage identity for query coverage per HSP (High Scoring Pair)in alignment blast.
+      --pp <pident>                       percentage identity in the alignment blast.
+      --sl <shortest_sequence_length>     Start from integration step, require the shortest sequence length in cleaned fasta file. If do not use this parameter, default is 18.
+      --ll <longest_sequence_legnth>      Start from integration step, require the longest sequence length in cleaned fasta file. If do not use this parameter, default is 40.
+      --fna <fna_file>                    Path to the reference genome in .fna format (from NCBI RefSeq/GenBank).
+      --gtf <gtf_file>                    Path to the GTF file.
+      --hairpin <reference_hairpin_fa>    Path to the reference file of precursor miRNA (pre-miRNA) stem–loop sequences, downloaded from the miRBase database (in .fa format).
+      -o <output_folder>                  Output folder.
 
 Generic Options:
   -h  Display this help message
@@ -308,8 +325,6 @@ main() {
                 case "${OPTARG}" in
                     t1)  opts[t1]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     t2)  opts[t2]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
-                    umi) opts[umi]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
-                    inf) opts[inf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     mr)  opts[mr]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     lf)  opts[lf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     cn)  opts[cn]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
@@ -322,6 +337,11 @@ main() {
                     ll)  opts[ll]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     sg)  opts[sg]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     bg)  opts[bg]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    umi) opts[umi]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    inf) opts[inf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    fna) opts[fna]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    gtf) opts[gtf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    hairpin)  opts[hairpin]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     *)   log_error "Invalid option: --$OPTARG"; usage; exit 1 ;;
                 esac ;;
             h) usage ;;
@@ -332,7 +352,10 @@ main() {
 
 
     # Switch case to handle each function
-    check_create_log_dir "${opts[o]}" "$program"
+    if [ "$program" != "all" ]; then
+        check_create_log_dir "${opts[o]}" "$program"
+    fi
+    
     
     local cleaning_code_path=${PARENT_DIR}/python/cleaning
     local after_cleaning_code_path=${PARENT_DIR}/python/after_cleaning
@@ -501,8 +524,127 @@ main() {
             ;;
 
         all)
-            log_message "Running require steps fromn extract to produce final_form processes.(not include optional steps: preprocess, detect_species, addtional_steps, simulate_block)"
-            # Implement calls to all functions here
+            log_message "Running require steps fromn extract step to produce final_form step.(not include optional steps: preprocess, detect_species, addtional_steps, simulate_block)"
+            # Implement calls to all main functions here
+            # Required top-level inputs for the whole pipeline
+            # reads (-r), length (-l), filter mode (-F), genome name (-n),
+            # genome FNA (--fna), genome GTF (--gtf), miRNA DB FASTA (--hairpin),
+            # map params (--pq, --pp), output root (-o)
+            check_params r l F n o pq pp fna gtf hairpin
+        
+            if [[ ! -s "${opts[fna]}" || ! -s "${opts[hairpin]}" || ! -s "${opts[gtf]}" ]]; then
+                echo "ERROR: --fna (genome .fna) and --hairpin (miRNA hairpin.fa) --gtf(genomic.gtf) one or more these files are missing or empty for -p all command." >&2
+                exit 1
+            fi
+
+            # If not clean, enforce t1/t2/umi like your extract step
+            if [ "${opts[F]}" != "clean" ]; then
+                check_params t1 t2 umi
+                t1_param="${opts[t1]}"; t2_param="${opts[t2]}"; umi_param="${opts[umi]}"
+            else
+                t1_param=""; t2_param=""; umi_param="0"
+            fi
+
+            # ouput subfolder names
+            ROOT="${opts[o]}"
+            EXTRACT_DIR="${ROOT}/extract"
+            MAP_G_DIR="${ROOT}/map_genome"
+            MAP_G_DATABASE_DIR="${MAP_G_DIR}/${opts[n]}"
+            MAP_MIR_DIR="${ROOT}/map_mirna"
+            MAP_MIR_DATABASE_DIR="${MAP_MIR_DIR}/hairpin_database"
+            QUANT_G_DIR="${ROOT}/quantify_genome"
+            QUANT_MIR_DIR="${ROOT}/quantify_mirna"
+            INTEG_DIR="${ROOT}/integrate"
+            PRED_MIR_DIR="${ROOT}/predict_mirdeep"
+            PRED_LF_DIR="${ROOT}/predict_linearfold"
+            FINAL_DIR="${ROOT}/produce_final_form"
+
+            # Create dirs that your submodes expect
+            check_create_log_dir "${EXTRACT_DIR}" "extract"
+            check_create_log_dir "${MAP_G_DIR}" "map_genome"
+            check_create_log_dir "${MAP_MIR_DIR}" "map_mirna"
+            check_create_log_dir "${QUANT_G_DIR}" "quantify_genome"
+            check_create_log_dir "${QUANT_MIR_DIR}" "quantify_mirna"
+            check_create_log_dir "${INTEG_DIR}" "integrate"
+            check_create_log_dir "${PRED_MIR_DIR}" "predict_mirdeep"
+            check_create_log_dir "${PRED_LF_DIR}" "predict_linearfold"
+            check_create_log_dir "${FINAL_DIR}" "produce_final_form"
+
+            check_create_dir "${EXTRACT_DIR}/middle_results"
+            check_create_dir "${MAP_G_DATABASE_DIR}"
+            check_create_dir "${MAP_MIR_DATABASE_DIR}"
+            check_create_dir "${QUANT_G_DIR}/middle_results"
+            check_create_dir "${QUANT_MIR_DIR}/middle_results"
+            check_create_dir "${INTEG_DIR}/middle_results"
+            check_create_dir "${PRED_MIR_DIR}/middle_results"; check_create_dir "${PRED_MIR_DIR}/middle_results/database"
+            check_create_dir "${PRED_LF_DIR}/middle_results";  check_create_dir "${PRED_LF_DIR}/middle_results/database"
+            check_create_dir "${FINAL_DIR}/middle_results"
+
+            # ---------------- 1) extract ----------------
+            
+            IFS=' ' read -r -a p_extract <<< "$(abs_path "${opts[r]}" "${EXTRACT_DIR}")"
+            run_script "${DIR}/run.sh" "$cleaning_code_path" \
+            "${opts[l]}" "${opts[F]}" "$t1_param" "$t2_param" "$umi_param" "${p_extract[@]}"
+
+            final_fa="${EXTRACT_DIR}/final_seq_${opts[l]}.fa"
+            final_fq="${EXTRACT_DIR}/final_seq_${opts[l]}.fastq"
+            final_umi_fastq="${EXTRACT_DIR}/final_umi.fastq"
+            final_umi_fasta="${EXTRACT_DIR}/final_umi.fasta"
+            if [ ! -s "${final_fa}" ]; then echo "ERROR: missing ${final_fa}" >&2; exit 1; fi
+            if [ ! -s "${final_fq}" ]; then echo "ERROR: missing ${final_fq}" >&2; exit 1; fi
+
+            # ---------------- 2) map_genome ----------------
+            IFS=' ' read -r -a p_mapg <<< "$(abs_path "${opts[fna]}" "${final_fa}" "${MAP_G_DATABASE_DIR}" "${MAP_G_DIR}")"
+            run_script "${DIR}/map_genome.sh" "${opts[n]}" "${opts[pq]}" "${opts[pp]}" "${p_mapg[@]}"
+
+            # ---------------- 3) map_mirna ----------------
+            IFS=' ' read -r -a p_mapmir <<< "$(abs_path "${opts[hairpin]}" "${final_fa}" "${MAP_MIR_DATABASE_DIR}" "${MAP_MIR_DIR}")"
+            run_script "${DIR}/map_microrna.sh" "hairpin" "$after_cleaning_code_path" "${p_mapmir[@]}"
+
+            # ---------------- 4) quantify_genome ----------------
+            if [ "${opts[umi]}" -ne 0 ]; then
+                if [ ! -s "${final_umi_fastq}" ]; then echo "ERROR: missing ${final_umi_fastq}" >&2; exit 1; fi
+                if [ ! -s "${final_umi_fasta}" ]; then echo "ERROR: missing ${final_umi_fasta}" >&2; exit 1; fi
+                umi_fastq="${final_umi_fastq}"
+                umi_fasta="${final_umi_fasta}"
+            else
+                umi_fastq="none"
+                umi_fasta="none"
+            fi
+
+            blast_genome_txt="${MAP_G_DIR}/blast_score_filter.txt"
+            IFS=' ' read -r -a p_qg <<< "$(abs_path "${opts[gtf]}" "${blast_genome_txt}" "${umi_fastq}" "${QUANT_G_DIR}")"
+            run_script "${DIR}/species_function_quantification.sh" "$after_cleaning_code_path" "${p_qg[@]}"
+
+            # ---------------- 5) quantify_mirna ----------------
+            blast_hairpin_txt="${MAP_MIR_DIR}/blastn_hairpin_rna.txt"
+            IFS=' ' read -r -a p_qm <<< "$(abs_path "${blast_hairpin_txt}" "${umi_fastq}" "${QUANT_MIR_DIR}")"
+            run_script "${DIR}/mirna_function_quantification.sh" "$after_cleaning_code_path" "${p_qm[@]}"
+
+            # ---------------- 6) integrate ----------------
+            IFS=' ' read -r -a p_inte <<< "$(abs_path "${final_fq}" "${MAP_G_DIR}" "${MAP_MIR_DIR}" "${umi_fasta}" "${INTEG_DIR}")"
+            run_script "${DIR}/integration.sh" "$cleaning_code_path" "$after_cleaning_code_path" "${opts[sl]}" "${opts[ll]}" "${p_inte[@]}"
+
+            pred_input_fa="${INTEG_DIR}/prediction_input.fasta"
+            blast_pred_filter="${INTEG_DIR}/blast_score_prediction_filter.txt"
+            if [ ! -s "${pred_input_fa}" ]; then echo "ERROR: missing ${pred_input_fa}" >&2; exit 1; fi
+            if [ ! -s "${blast_pred_filter}" ]; then echo "ERROR: missing ${blast_pred_filter}" >&2; exit 1; fi
+            # ---------------- 7a) predict: mirdeep2 ----------------
+            IFS=' ' read -r -a p_pm <<< "$(abs_path "${pred_input_fa}" "${opts[fna]}" "${PRED_MIR_DIR}")"
+            run_script "${DIR}/run_mirdeep2.sh" "${opts[n]}" "$after_cleaning_code_path" "${p_pm[@]}"
+
+            # ---------------- 7b) predict: linearfold ----------------
+            IFS=' ' read -r -a p_plf <<< "$(abs_path "${pred_input_fa}" "${blast_pred_filter}" "${opts[fna]}" "${PRED_LF_DIR}")"
+            run_script "${DIR}/run_linearfold.sh" "$after_cleaning_code_path" "${p_plf[@]}"
+
+            # ---------------- 8) produce_final_form ----------------
+            hairpin_csv="${MAP_MIR_DIR}/blastn_hairpin_sequences.csv"
+            redun_info="${INTEG_DIR}/redundant_sequences_information.csv"
+            mirdeep_out_dir="${PRED_MIR_DIR}"
+            linearfold_csv="${PRED_LF_DIR}/hairpin_information.csv"
+
+            IFS=' ' read -r -a p_final <<< "$(abs_path "${pred_input_fa}" "${hairpin_csv}" "${redun_info}" "${mirdeep_out_dir}" "${linearfold_csv}" "${FINAL_DIR}")"
+            run_script "${DIR}/final_form_production.sh" "$after_cleaning_code_path" "${p_final[@]}"
             ;;
 
         *)
