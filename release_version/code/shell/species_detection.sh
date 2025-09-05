@@ -3,8 +3,7 @@
 # Exit immediately if any command fails
 set -e
 set -o pipefail
-module load blast/2.14
-module load biodata/1.0
+
 # Global variables for input arguments
 REFPROK_DATABASE="$1"
 CODE_PATH="$2"

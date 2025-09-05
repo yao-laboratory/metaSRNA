@@ -87,7 +87,7 @@ def add_gene(input_gtf, input_score, temp_folder, output_csv):
     temp_final_csv = os.path.join(temp_folder, "blast_score_filter_add_gene_temp.csv")
     with open(temp_final_csv, 'w') as out_file:
         gtf_groups = gtf_df.groupby('seqname')
-        # print("gtf_groups:", gtf_groups)
+        print("gtf_groups:", gtf_groups)
         mapping_score_groups = mapping_score_df.groupby('sacc')
         for contig, mapping_score_group in mapping_score_groups:
             if contig in gtf_groups.groups:

@@ -2,8 +2,6 @@ from io import StringIO
 import os
 from os import listdir, path, makedirs
 import pandas as pd
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Alignment
 from openpyxl.styles import Border, Side

@@ -4,9 +4,6 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-# Load required modules
-module load blast/2.14
-module load biodata/1.0
 
 # Global variables
 CODE_PATH_FOR_CLEAN=$1

@@ -231,9 +231,7 @@ def create_bed_file(result, bed_file_path):
 
     if os.path.isfile(bed_file_path):
         os.remove(bed_file_path)
-        print(f"{bed_file_path} deleted.")
-    else:
-        print(f"{bed_file_path} does not exist.")
+        print(f"{bed_file_path} already existed, need to delete.")
     data = []
     for value_lists in result.values():
         # print("value_lists",value_lists)

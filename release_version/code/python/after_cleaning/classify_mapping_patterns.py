@@ -13,7 +13,6 @@ from Bio.Seq import Seq
 from Bio.Phylo.BaseTree import Clade
 from Bio.SeqUtils import seq3
 from skbio import TreeNode
-import matplotlib.pyplot as plt
 import argparse
 from collections import defaultdict
 import pandas as pd

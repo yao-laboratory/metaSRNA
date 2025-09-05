@@ -9,10 +9,6 @@ database=$6
 results=$7
 
 
-module load blast/2.14
-module load biodata/1.0
-module load seqtk/1.2
-
 echo $qcovhsp
 echo $pident
 # Function to check if a value is an integer

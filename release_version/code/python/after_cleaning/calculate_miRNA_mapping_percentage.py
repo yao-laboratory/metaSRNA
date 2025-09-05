@@ -2,8 +2,6 @@ from io import StringIO
 import os
 from os import listdir, path, makedirs
 import pandas as pd
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import argparse
 import sys
 

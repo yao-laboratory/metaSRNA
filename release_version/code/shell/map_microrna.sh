@@ -1,10 +1,5 @@
 #!/bin/bash
 
-module load blast/2.14
-module load biodata/1.0
-module load allinea
-module load seqtk
-
 database_name=$1
 code_path=$2
 fa_file=$3
