@@ -67,9 +67,9 @@ def union_top_species_old(folder_path, top_cnt, output_folder):
     default_gcf = ""
     for value in last_column:
         # Run the shell command to get the RefSeq for each value
-        command1 = f"module load entrez-direct/16.2"
+        #command1 = f"module load entrez-direct/16.2"
         command2 = f"esearch -db assembly -query {value} | efetch -format docsum | xtract -pattern DocumentSummary -element AssemblyAccession"
-        combined_command = f"{command1} && {command2}"
+        combined_command = f"{command2}"
         output = subprocess.run(combined_command, shell=True, capture_output=True, text=True)
         # print(output.stdout.strip())
         # Split the line into two values

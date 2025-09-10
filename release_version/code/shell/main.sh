@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# # Activate the environment
-# source activate cleanfasq_env
 
 # Define this shell directory and its' parent directory
 DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"

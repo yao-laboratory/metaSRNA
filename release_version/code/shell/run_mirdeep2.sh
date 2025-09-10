@@ -1,7 +1,5 @@
 #!/bin/bash
 # Exit immediately if any command fails
-source ~/.bashrc
-conda activate cleanfasq_env
 set -e
 
 # Function to delete file if it exists
@@ -52,7 +50,6 @@ cd $results
 ## mkdir -p $results/middle_results/database
 
 ## bowtie to generate database
-module load bowtie/1.3
 bowtie-build $results/middle_results/fna_file.fa $results/middle_results/database/${database_name}
 
 ## start mirdeep2

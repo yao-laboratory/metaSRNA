@@ -3,8 +3,6 @@
 # Exit immediately if any command fails
 set -e
 set -o pipefail
-# module load blast/2.14
-# module load biodata/1.0
 # Global variables for input arguments
 if ! [[ "$1" =~ ^[0-9]+$ ]]; then
     printf "Error: FLAG must be a numeric value.\n" >&2

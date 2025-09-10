@@ -1,7 +1,5 @@
 #!/bin/bash
 
-source ~/.bashrc
-conda activate cleanfasq_env
 # Exit immediately if any command fails
 set -e
 
