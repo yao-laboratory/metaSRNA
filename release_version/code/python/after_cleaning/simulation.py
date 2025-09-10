@@ -265,9 +265,12 @@ def run_simulation_code(code_folder, bed_file_path, output_folder):
     command = [
         "python3", script_path,
         "-input_bedfile", bed_file_path,
+        "-min_block_length", str(18),
+        "-max_block_length", str(30),
+        "-min_block_sequences_count", str(10),
         "-output_folder", os.path.join(output_folder,"temp_results","results")
     ]
-
+    print("command:",command)
     subprocess.run(command, check=True)
 
 def normalize_id(s):
