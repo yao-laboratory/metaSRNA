@@ -40,7 +40,7 @@ if conda env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
 fi
 
 echo "[info] creating environment: $ENV_NAME (python)"
-$PKG create -n "$ENV_NAME" -y python=3.8 blast=2.14.0 mirdeep2 viennarna=1.8.5 seqtk=1.2 entrez-direct=16.2
+$PKG create -n "$ENV_NAME" -y python=3.8 blast=2.14.0 mirdeep2 seqtk=1.2 entrez-direct=16.2
 
 echo "[info] activating $ENV_NAME"
 source "$(conda info --base)/etc/profile.d/conda.sh"
@@ -54,47 +54,6 @@ $PKG install -y -c bioconda linearfold
 
 
 echo "[done] environment '$ENV_NAME' ready at: $CONDA_PREFIX"
-echo "       activate with: conda activate $ENV_NAME"
-
-###########################################################
-# Configure ViennaRNA 1.8.4(RNAfold) and PERL5LIB fix
-###########################################################
-script_path="$(readlink -f "$0")"
-dir="$(dirname "$script_path")"
-
-target_path_vienna="$dir/ViennaRNA-1.8.4/install_dir/bin"
-
-mkdir -p "$CONDA_PREFIX/etc/conda/activate.d"
-mkdir -p "$CONDA_PREFIX/etc/conda/deactivate.d"
-
-# activation script
-cat > "$CONDA_PREFIX/etc/conda/activate.d/env_vars.sh" <<EOF
-#!/bin/bash
-# Save PATH only if not already saved
-if [[ -z "\${OLD_PATH-}" ]]; then
-    export OLD_PATH="\$PATH"
-fi
-# Prepend ViennaRNA bins
-export PATH=$target_path_vienna:\$PATH
-
-# Force Perl to use this env's libraries
-export PERL5LIB=\$CONDA_PREFIX/lib/perl5/site_perl:\$PERL5LIB
-EOF
-
-# deactivation script
-cat > "$CONDA_PREFIX/etc/conda/deactivate.d/env_vars.sh" <<EOF
-#!/bin/bash
-# Restore PATH only if OLD_PATH is set
-if [[ -n "\${OLD_PATH-}" ]]; then
-    export PATH="\$OLD_PATH"
-    unset OLD_PATH
-fi
-# Reset PERL5LIB
-unset PERL5LIB
-EOF
-
-chmod +x "$CONDA_PREFIX/etc/conda/activate.d/env_vars.sh"
-chmod +x "$CONDA_PREFIX/etc/conda/deactivate.d/env_vars.sh"
-
 echo "[info] Finished setup."
+echo "       activate with: conda activate $ENV_NAME"
 conda deactivate
