@@ -41,7 +41,7 @@ Programs and their Required Options:
       -l <filter_minimum_length>          raw data fitering minimum length condition
       -o <output_folder>                  Output folder including (clean fasta file and corresponding umi file).
       -F <clean_format>                   Flexible cleaning pattern, if no need clean, add "clean".
-      --t1 <fault_torlerance>             This option sets the number of bits (errors) allowed in the pattern that are not correct.
+      --t1 <fault_torlerance>             This option sets the number of bases (errors) allowed in the pattern that are not correct.
       --t2 <tail_incomplete_tolerance>    This parameter specifies how many incomplete bits are allowed in the pattern tail.
       --umi <umi exist flag>              This flag indicates whether a UMI exists, 0: not exist, n is exist in nth part(n >1)
 

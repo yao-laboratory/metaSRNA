@@ -1,5 +1,5 @@
 
-# Meta-sRNA Pipeline `README`
+# Meta-sRNA Pipeline
 
 ## About
 
@@ -49,7 +49,7 @@ Usage:
  ./main.sh -h
 ```
 ### Diagram Overview 
-<img src="git_images/pipeline_graph.png" />
+<img src="release_version/git_images/pipeline_graph.png" />
 
 
 ## Prepare the needed input data
