@@ -50,6 +50,7 @@ Programs and their Required Options:
     - Options:
       -c <clean_fasta_file> Path to the clean FASTA file.
       -t <retain how many top mapping species> Retain the top <n> mapping species' sacc and gcf values.
+      -d <prokaryote_database> Path to the prokaryote database.
       -o <output_folder>    Output folder including (combined fna and (combined?) gtf files)
 
   detect_species_additional_step
@@ -357,7 +358,6 @@ main() {
     
     local cleaning_code_path=${PARENT_DIR}/python/cleaning
     local after_cleaning_code_path=${PARENT_DIR}/python/after_cleaning
-    local refprok_database=${RELEASE_DIR}/database/blast_refprok_database
     local param_flag=0
 
     case "$program" in
@@ -394,10 +394,10 @@ main() {
             ;;
 
         detect_species)
-            check_params c o t
+            check_params c o d t
             check_create_dir "${opts[o]}/middle_results"
-            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[o]}")"
-            run_script "${DIR}/species_detection.sh" "$refprok_database" "$after_cleaning_code_path" "${opts[t]}" "${paths[@]}"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[o]}" "${opts[d]}")"
+            run_script "${DIR}/species_detection.sh" "$after_cleaning_code_path" "${opts[t]}" "${paths[@]}"
             ;;
         
         detect_species_additional_step)

@@ -5,11 +5,12 @@ set -e
 set -o pipefail
 
 # Global variables for input arguments
-REFPROK_DATABASE="$1"
-CODE_PATH="$2"
-TOP_NUM="$3"
-CLEAN_FASTA="$4"
-RESULTS="$5"
+
+CODE_PATH="$1"
+TOP_NUM="$2"
+CLEAN_FASTA="$3"
+RESULTS="$4"
+REFPROK_DATABASE="$5"
 
 MIDDLE_FOLDER="$RESULTS/middle_results"
 
