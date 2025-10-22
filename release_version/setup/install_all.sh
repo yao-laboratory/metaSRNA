@@ -55,6 +55,7 @@ $PKG install -y -c conda-forge numpy pandas seaborn pillow scikit-learn scipy br
 $PKG install -y -c conda-forge biopython scikit-bio pybedtools
 $PKG install -y -c conda-forge ipython jupyter
 $PKG install -y -c bioconda linearfold
+$PKG install -c bioconda bbmap
 # Levenshtein (string distance)
 $PKG install -y -c conda-forge python-Levenshtein
 

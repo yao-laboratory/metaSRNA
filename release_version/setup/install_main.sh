@@ -40,7 +40,7 @@ if conda env list | awk '{print $1}' | grep -qx "$ENV_NAME"; then
 fi
 
 echo "[info] creating environment: $ENV_NAME (python)"
-$PKG create -n "$ENV_NAME" -y python=3.8 blast=2.14.0 mirdeep2 seqtk=1.2 entrez-direct=16.2
+$PKG create -n "$ENV_NAME" -y python=3.8 blast=2.14.0 mirdeep2 seqtk=1.2 entrez-direct=16.2 matplotlib
 
 echo "[info] activating $ENV_NAME"
 source "$(conda info --base)/etc/profile.d/conda.sh"
@@ -51,6 +51,7 @@ $PKG install -y -c conda-forge numpy pandas openpyxl
 $PKG install -y -c conda-forge biopython pybedtools
 $PKG install -y -c conda-forge ipython jupyter
 $PKG install -y -c bioconda linearfold 
+$PKG install -c bioconda bbmap
 
 
 echo "[done] environment '$ENV_NAME' ready at: $CONDA_PREFIX"
