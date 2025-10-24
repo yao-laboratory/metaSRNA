@@ -114,8 +114,38 @@ def produce_mirdeep2_results(input_mirdeep2_folder):
     else:
         print("do not run mirdeep2 tool, so put mirdeep2 column all set to 0")
     return df_result
+def sacc_species_name_collect(reference_genome):
+    sacc_list = []
+    name_list = []
 
-def produce_form(final_fasta, input_mirdeep2_folder, linearfold_results, mirna_mapping_results, duplicates_information, output_folder):
+    with open(reference_genome, "r") as f:
+        for line in f:
+            if line.startswith(">"):
+                header = line.strip()[1:]
+                before_comma = header.split(",", 1)[0]
+                parts = before_comma.split(" ", 1)
+                if len(parts) == 2:
+                    sacc, name = parts
+                # else:
+                #     sacc = parts[0]
+                #     name = ""
+                sacc_list.append(sacc)
+                name_list.append(name)
+
+    df = pd.DataFrame({"SACC_refseqID": sacc_list, "name": name_list})
+    return df
+
+def calculate_species_count_percentage(group):
+    sacc_group = group['sacc'].value_counts(normalize=True)
+    sacc_list = list(map(str, sacc_group.index))
+    percentages = [f"{p * 100:.2f}" for p in sacc_group.values]
+    return pd.Series({
+        'percentage(%)': '|'.join(percentages),
+        'species_count': len(sacc_group),
+        'sacc': '|'.join(sacc_list),
+    })
+
+def produce_form(final_fasta, input_mirdeep2_folder, linearfold_results, mirna_mapping_results, reference_genome, genome_mapping_results, duplicates_information, output_folder):
     # Step 1: Initialize DataFrames
     df_names = ["result_df_fasta", "result_df_mirna", "result_df_linearfold", "result_df_mirdeep", "result_df_duplicates"]
     df = {name: pd.DataFrame() for name in df_names}
@@ -162,7 +192,41 @@ def produce_form(final_fasta, input_mirdeep2_folder, linearfold_results, mirna_m
     output_path = os.path.join(output_folder, "final_form.csv")
     print(output_path)
     merged_final.to_csv(output_path, index=False)
-        
+    df_species = pd.read_csv(genome_mapping_results, sep=',') 
+    df_species.columns = ["qseqid", "sacc", "sstart", "send", "evalue", "bitscore", "qcovhsp", "pident"]
+    df_species = df_species [['qseqid','sacc']]
+    df_species['qseqid'] = df_species['qseqid'].astype(str)
+
+    sacc_name_df = sacc_species_name_collect(reference_genome)
+    unique_count = sacc_name_df['SACC_refseqID'].nunique()
+    unique_value = sacc_name_df['SACC_refseqID'].unique()
+    mapping = {val: i + 1 for i, val in enumerate(unique_value)}
+    sacc_name_df["internal_ID"] = sacc_name_df["SACC_refseqID"].map(mapping)
+    #change internal_ID to the first column
+    cols = ['internal_ID'] + [col for col in sacc_name_df.columns if col != 'internal_ID']
+    sacc_name_df = sacc_name_df[cols]
+
+    final_form = pd.read_csv(os.path.join(output_folder, "final_form.csv"), sep=',', usecols=['sequence','same_seq_ids']) 
+
+    sacc_name_df.to_csv(os.path.join(output_folder, "ID_mapping_names_table.csv"), index=False)
+    
+    if unique_count > 1:
+        new_col_name = 'internal_ID'
+        final_form_expanded = (
+            final_form.assign(qseqid=final_form['same_seq_ids'].str.split('|'))
+            .explode('qseqid')
+            .drop(columns='same_seq_ids'))
+        final_form_expanded['qseqid'] = final_form_expanded['qseqid'].astype(str)
+
+        #random pick one mapping result for every qseqid
+        df_species_random = df_species.groupby("qseqid", group_keys=False).apply(lambda x: x.sample(1))
+        df_species_random['sacc'] = df_species_random['sacc'].map(mapping)
+
+        merged = pd.merge(final_form_expanded, df_species_random, on='qseqid', how='left')
+        final_df = merged.groupby('sequence').apply(calculate_species_count_percentage).reset_index()
+        final_df.rename(columns={'sacc': new_col_name}, inplace=True)
+        final_df.to_csv(os.path.join(output_folder, "summary_statistics_table.csv"), index=False)
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="get top several number of species based on ranking the mapping ratesimulate a bed file")
@@ -170,6 +234,10 @@ def parse_arguments():
                         type=str, help='Path to the clean FASTA file (after filtering length and removing duplicates) ')
     parser.add_argument('-input_mirna_mapping_results', required=False,
                         type=str, help='Path to the miRNA mapping score file.')
+    parser.add_argument('-input_reference_genome', required=False,
+                    type=str, help='Path to the reference genome in .fna format (from NCBI RefSeq/GenBank).')
+    parser.add_argument('-input_genome_mapping_results', required=False,
+                        type=str, help='Path to the species mapping filtered score file.')
     parser.add_argument('-duplicates_information', required=False,
                         type=str, help='Path to file about duplicate sequences information.')
     parser.add_argument('-input_mirdeep2_folder', required=False,
@@ -184,9 +252,9 @@ def parse_arguments():
 
 def main():
     args = parse_arguments()
-    if args.input_final_fasta and args.input_mirna_mapping_results and args.duplicates_information and args.output_folder:
+    if args.input_final_fasta and args.input_mirna_mapping_results  and args.input_reference_genome and args.input_genome_mapping_results and args.duplicates_information and args.output_folder:
             # time_start_s = time.time()
-        produce_form(args.input_final_fasta, args.input_mirdeep2_folder, args.input_linearfold_results, args.input_mirna_mapping_results, args.duplicates_information, args.output_folder)
+        produce_form(args.input_final_fasta, args.input_mirdeep2_folder, args.input_linearfold_results, args.input_mirna_mapping_results, args.input_reference_genome, args.input_genome_mapping_results, args.duplicates_information, args.output_folder)
         # time_end_s = time.time()
         # time_c = time_end_s - time_start_s
         # print('time cost', time_c, 's')

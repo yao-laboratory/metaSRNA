@@ -123,12 +123,14 @@ Programs and their Required Options:
   produce_final_form
     - Integrate species and miRNA data sets mapping results.
     - Options:
-      -c  <clean_fasta_file>      Path to the clean FASTA file (after filtering length and removing duplicates)
-      -m  <mapping_mirna_file>    Path to the miRNA mapping score file.
+      -c  <clean_fasta_file>        Path to the clean FASTA file (after filtering length and removing duplicates)
+      -f <fna_file>                 Path to the reference genome in .fna format (from NCBI RefSeq/GenBank).
+      --mi <mapping_mirna_file>     Path to the miRNA mapping score file.
+      --mg <mapping_genome_file>    Path to the genome mapping filter score file.
       --inf <duplicate_sequences_information> Path to file about duplicate sequences information.
-      --mr <mirdeep_result>        Path to folder about mirdeep2 prediction result.
-      --lf <linearfold_result>     Path to file about linearfold prediction results.
-      -o <output_folder>           Output folder
+      --mr <mirdeep_result>         Path to folder about mirdeep2 prediction result.
+      --lf <linearfold_result>      Path to file about linearfold prediction results.
+      -o <output_folder>            Output folder
     
   additional_step
     - additional_function
@@ -324,6 +326,8 @@ main() {
                 case "${OPTARG}" in
                     t1)  opts[t1]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     t2)  opts[t2]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    mi)  opts[mi]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
+                    mg)  opts[mg]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     mr)  opts[mr]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     lf)  opts[lf]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
                     cn)  opts[cn]="${!OPTIND}"; OPTIND=$((OPTIND + 1)) ;;
@@ -493,9 +497,9 @@ main() {
             ;;
 
         produce_final_form)
-            check_params c m inf mr lf o
+            check_params c mi mg f inf mr lf o
             check_create_dir "${opts[o]}/middle_results"
-            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[m]}" "${opts[inf]}" "${opts[mr]}" "${opts[lf]}" "${opts[o]}")"
+            IFS=' ' read -r -a paths <<< "$(abs_path "${opts[c]}" "${opts[mi]}" "${opts[f]}" "${opts[mg]}" "${opts[inf]}" "${opts[mr]}" "${opts[lf]}" "${opts[o]}")"
             run_script "${DIR}/final_form_production.sh" "$after_cleaning_code_path" "${paths[@]}"
             ;;
         
@@ -641,7 +645,7 @@ main() {
             mirdeep_out_dir="${PRED_MIR_DIR}"
             linearfold_csv="${PRED_LF_DIR}/hairpin_information.csv"
 
-            IFS=' ' read -r -a p_final <<< "$(abs_path "${pred_input_fa}" "${hairpin_csv}" "${redun_info}" "${mirdeep_out_dir}" "${linearfold_csv}" "${FINAL_DIR}")"
+            IFS=' ' read -r -a p_final <<< "$(abs_path "${pred_input_fa}" "${hairpin_csv}" "${opts[fna]}" "${blast_genome_txt}" "${redun_info}" "${mirdeep_out_dir}" "${linearfold_csv}" "${FINAL_DIR}")"
             run_script "${DIR}/final_form_production.sh" "$after_cleaning_code_path" "${p_final[@]}"
             ;;
 
