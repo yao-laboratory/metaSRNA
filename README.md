@@ -1,5 +1,5 @@
 
-# Meta-sRNA Pipeline
+# MetaSRNA Pipeline
 
 ## About
 
@@ -21,41 +21,23 @@ preprocessing, extraction, mapping to genomes and miRNA databases, quantificatio
 git clone git@github.com:yao-laboratory/metaSRNA.git
 ```
 ### Step 2: Install conda environment
-option 1: with the provided metasrna_all.sh script (for all processes: main processes and addtional processes in metaSRNA)
+option 1: with the provided install_all.sh script (for all processes: main processes and addtional processes in metaSRNA), note: if not add name, the conda env called metasrna_all
 ```sh
-chmod +x metasrna_all.sh
-./metasrna_all.sh
-conda activate metasrna_all
+chmod +x install_all.sh
+./install_all.sh
+conda activate install_all
 ```
-option 2: with the provided metasrna_main.sh script (for main processes in metaSRNA)
+option 2: with the provided install_main.sh script (for main processes in metaSRNA),
+note: if not add name, the conda env default called metasrna_main.
 ```sh
-chmod +x metasrna_main.sh
-./metasrna_main.sh
-conda activate metasrna_main
+chmod +x install_main.sh
+./install_main.sh
+conda activate install_main
 ```
-
-## Pipeline Overview
-### Command Overview
-Analyses are performed using the main script `main.sh` with modules specified by `-p <program>`.
-
-Usage:
-```sh
- ./main.sh -p <program> [options]
-```
-command overview are performed using the main script `main.sh` with modules specified by `-h`.
-
-Usage:
-```sh
- ./main.sh -h
-```
-### Diagram Overview 
-<img src="release_version/git_images/pipeline_graph.png" />
-
-
 ## Prepare the needed input data
    
    *You need this section only when you haven't downloaded the necessary input of this tool,
-   below use our toy data: SRR684065 as example.*
+   below use SRR684065 as example.*
 
    (1) Download fastq.gz file from NCBI.
    
@@ -82,8 +64,178 @@ Usage:
    ```
    wget https://www.mirbase.org/download/hairpin.fa
    ```
+   (4) Optional: This step only for species_detect step. When you samples' species reference are unknown, prepare your own prokaryote database.
+
+   4.1 Zenodo Download:
+
+    link: , folder name : prokaryote_database
+    
+   4.2 NCBI download
+
+    link: https://ftp.ncbi.nlm.nih.gov/blast/db/ 
+   
+   dowload ref_prok_rep_genome 00~20, or 00~24(newest version). After unzipping, the files are already in BLAST database format. Just place all of them in one folder.
+
 ---
-### Step 0 : `preprocess`
+# Pipeline Overview
+## Command Overview
+Analyses are performed using the main script `main.sh` with modules specified by `-p <program>`.
+
+Usage:
+```sh
+ ./<path to main.sh>/main.sh -p <program> [options]
+```
+Command overview are performed using the main script `main.sh` with modules specified by `-h`.
+
+Usage:
+```sh
+ ./<path to main.sh>/main.sh -h
+```
+## Diagram Overview 
+<img src="release_version/git_images/pipeline_graph.png" />
+
+## Example Overview:
+Note: all shells provided below also in this git folder: release_version/Demo
+## Run Pipeline End-to-End
+Integration Command:
+
+The **integration command** (`-p all`) runs **Step 1 through Step 9** of the pipeline  
+(**excluding Step 2, which is optional**). This command processes the raw FASTQ input and generates the final integrated outputs in a single run.
+
+#### Example command
+
+```sh
+./main.sh -p all -r <your_fastq_folder>/<fastq_name>.fastq -l 12 -F <tag>  -n <bacteria_name> --t1 2 --t2 4 --umi 2 --pq 100 --pp 100 --sl 18 --ll 40 --fna <your_fna_input_folder>/<fna_file_name>.fna  --gtf <your_gtf_input_folder>/<gtf_file_name>.gtf --hairpin <your_hairpin_input_folder>/hairpin.fa -o <your_output_folder>/all_steps
+```
+#### Example Shell
+Using sample **SRR18745680** as an example, we provide shell scirpt for you.
+
+👉 [integration_command.sh](release_version/Demo/integration_command.sh)
+
+---
+
+
+## Different Running Cases with examples:
+### (1) Single Known Reference Genome
+
+Using sample **SRR18745680** as an example, we provide three ready-to-use shell scripts depending on how you prefer to run the pipeline.
+
+#### **A. Integration Command (Main Steps in One Run)**
+Runs the main workflow using the `-p all` integration command.
+
+👉 [single_known_reference_main_steps_integration_command.sh](release_version/Demo/single_known_reference_main_steps_integration_command.sh)
+
+---
+
+#### **B. Main Steps Executed Step-by-Step**
+Runs only the main steps individually.  
+Use this when you want to execute **selected steps**, or customize the main workflow.
+
+👉 [single_known_reference_main_steps.sh](release_version/Demo/single_known_reference_main_steps.sh)
+
+---
+
+#### **C. Full Workflow: All Available Steps**
+Runs **all** pipeline steps (including optional steps).  
+Use this when you want to explore or customize the complete workflow.
+
+👉 [single_known_reference_all_steps.sh](release_version/Demo/single_known_reference_all_steps.sh)
+
+---
+
+### (2) Species unknown in a community (need species identification)
+In the script, you only need to decide how many species you wanna detect, change **species_number** in the script. 
+Using sample **SRR18078867** as an example, we provide two ready-to-use shell scripts depending on how you prefer to run the pipeline.
+
+#### **A. Main Steps Executed Step-by-Step**
+Runs only the main steps individually.
+
+👉 [species_unknown_main_steps.sh](release_version/Demo/species_unknown_main_steps.sh)
+
+---
+
+#### **B. Full Workflow: All Available Steps**
+Runs **all** pipeline steps (including optional ones).  
+Use this when you want to explore or customize the complete workflow.
+
+👉 [species_unknown_all_steps.sh](release_version/Demo/species_unknown_all_steps.sh)
+
+---
+
+
+### (3) Multiple known reference genomes
+Before running script, you need to provide the combined multiple reference genomes as combined.fna and combined.gtf.
+Using sample **SRR684065** as an example. we provide three ready-to-use shell scripts depending on how you prefer to run the pipeline.
+
+#### **A. Integration Command (Main Steps in One Run)**
+Runs the main workflow using the `-p all` integration command.
+
+👉 [multiple_known_reference_main_steps_integration_command.sh](release_version/Demo/multiple_known_reference_main_steps_integration_command.sh)
+
+---
+
+#### **B. Main Steps Executed Step-by-Step**
+Runs only the main steps individually.  
+Use this when you want to execute **selected steps**, or customize the main workflow.
+
+👉 [multiple_known_reference_main_steps.sh](release_version/Demo/multiple_known_reference_main_steps.sh)
+
+---
+
+#### **C. Full Workflow: All Available Steps**
+Runs **all** pipeline steps (including optional ones).  
+Use this when you want to explore or customize the complete workflow.
+
+👉 [multiple_known_reference_all_steps.sh](release_version/Demo/multiple_known_reference_all_steps.sh)
+
+---
+
+
+### (4) pair-wise fastqs preprocess
+
+Using sample **SRR3382456** as an example. we provide ready-to-use shell script for make SRR3382456_1.fastq and SRR3382456_2.fastq 
+can merge as single fastq: SRR3382456.fastq 
+
+#### **Preprocess Steps shell**
+👉 [multiple_known_reference_main_steps_integration_command.sh](release_version/Demo/multiple_known_reference_main_steps_integration_command.sh)
+
+Then after preprocessing, the pair-wise fastqs can use above (1) or (2) or (3) any script to do the futher operations.
+
+---
+
+## Run Pipeline Step-by-Step:
+### Integration command : `all`
+
+#### Description
+Run full pipeline (extract → produce_final_form, except advanced steps).
+
+#### Options
+
+| option | description |
+|--------|-------------|
+| `-r <file>` | Raw data. |
+| `-l <int>` | Minimum length. |
+| `-F <pattern>` | Cleaning pattern. |
+| `-n <name>` | Database name. |
+| `--t1 <int>` | Fault tolerance bits. |
+| `--t2 <int>` | Tail tolerance bits. |
+| `--umi <flag>` | UMI flag. |
+| `--pq <int>` | Query coverage threshold. |
+| `--pp <int>` | Percent identity threshold. |
+| `--sl <int>` | Minimum sequence length (default 18). |
+| `--ll <int>` | Maximum sequence length (default 40). |
+| `--fna <file>` | Reference fna. |
+| `--gtf <file>` | gtf file. |
+| `--hairpin <file>` | miRNA hairpin fa reference. |
+| `-o <dir>` | Output folder. |
+#### Example usage
+
+```sh
+./main.sh -p all -r <your_fastq_folder>/<fastq_name>.fastq -l 12 -F *AACTGTAGGCACCATCAATXXXXXXXXXXXXAGATCGGAAGAGCACACGTCT*  -n ${bacteria} --t1 2 --t2 4 --umi 2 --pq 100 --pp 100 --sl 18 --ll 40 --fna <your_fna_input_folder>/<fna_file_name>.fna  --gtf <your_gtf_input_folder>/<gtf_file_name>.gtf --hairpin <your_hairpin_input_folder>/hairpin.fa -o <your_output_folder>/all_steps
+```
+---
+
+### Step 0 (Optional): `preprocess` 
 
 #### Description
 Preprocess raw FASTQ input files.
@@ -189,7 +341,8 @@ clean data, it skips adapter cleaning (raw reads assumed clean).
 ```
 ---
 
-### advanced step 1: `detect_species`
+### Step 2 (Optional): 
+#### Step 2.1: `detect_species`
 
 #### Description
 Detect top-N mapping species.
@@ -206,6 +359,7 @@ Detect top-N mapping species.
 |--------|-------------|
 | `-c <file>` | Clean FASTA file. |
 | `-t <int>` | Retain top N species. |
+| `-d <dir>` | Path to prokaryote database. |
 | `-o <dir>` | Output folder. |
 
 #### Example usage
@@ -220,11 +374,11 @@ output files:
 It shows top 10 species detecting results:
 
 ```sh
-./main.sh -p detect_species -c <your_output_folder>/extract/final_seq_12.fasta -o <your_output_folder>/detect_species -t 10
+./main.sh -p detect_species -c <your_output_folder>/extract/final_seq_12.fasta -d <prokaryote_database_folder> -o <your_output_folder>/detect_species -t 10 
 ```
 ---
 
-### advanced step 2: `detect_species_additional_step`
+#### Step 2.2:  `detect_species_additional_step`
 
 #### Description
 Download top species references and combine into a single database.
@@ -257,7 +411,7 @@ Download the top 10 species references produced in the detect_species step, comb
 ```
 ---
 
-### Step 2 : `map_genome`
+### Step 3 : `map_genome`
 
 #### Description
 Map reads against reference genome.
@@ -293,7 +447,7 @@ output files:
 ```
 ---
 
-### Step 3 : `quantify_genome`
+### Step 4 : `quantify_genome`
 
 #### Description
 Quantify mapped genome reads.
@@ -329,7 +483,7 @@ If input fastq has umi:
 ```
 ---
 
-### Step 4 : `map_mirna`
+### Step 5 : `map_mirna`
 
 #### Description
 Map reads to reference miRNAs(hairpin.fa).
@@ -346,7 +500,7 @@ Map reads to reference miRNAs(hairpin.fa).
 |--------|-------------|
 | `-f <file>` | Hairpin reference. (we provided hairpin.fa)|
 | `-c <file>` | Clean fasta file. (output in extract step)|
-| `-d <db>` | Indexed local database path |
+| `-d <db>` | Indexed local hairpin database path |
 | `-n <name>` | Database name. |
 | `-o <dir>` | Output folder. |
 #### Example usage
@@ -362,7 +516,7 @@ Use output Clean FASTA(.fa) file in extract step to map hairpin database:
 ```
 ---
 
-### Step 5 : `quantify_mirna`
+### Step 6 : `quantify_mirna`
 
 #### Description
 Quantify mapped miRNA reads.
@@ -395,7 +549,7 @@ If input fastq has umi:
 ```
 ---
 
-### Step 6 : `integrate`
+### Step 7 : `integrate`
 
 #### Description
 Integrate species and miRNA mapping results.
@@ -440,7 +594,7 @@ If input fastq has umi:
 ```
 ---
 
-### Step 7 & Step 8 : `predict mirdeep2` & `predict linearfold`
+### Step 8 : `predict mirdeep2` & `predict linearfold`
 
 #### Description
 Run predictive models.
@@ -462,18 +616,23 @@ Run predictive models.
 | `-f <fna>` | Reference fna. |
 | `-n <name>` | Database name. |
 | `-o <dir>` | Output folder. |
-#### Example usage
-
+#### Step 8.1: `predict mirdeep2` 
+output files: (all the files from mirdeep2 tool)
+- **`result_<date>.csv/html`** – the csv and HTML outputs show that the miRDeep2 tool identified novel miRNAs from the deep sequencing data.
+- **`mirdeep_runs/../output.mrd`** – output.mrd file shows miRBase miRNAs in data that were not scored by miRDeep2. Our metaSRNA in produce_final_form step will still count them in mirdeep2 results.
+##### Example use (mirdeep2)
 ```sh
 ./main.sh -p predict -w mirdeep2 -c <your_output_folder>/integrate/prediction_input.fasta  -f <your_fna_input_folder>/<fna_file_name>.fna -o <your_output_folder>/predict_mirdeep -n database
 ```
+#### Step 8.2: `predict linearfold` 
+We used the LinearFold tool to determine whether our miRNA sequences, extended by 40 bases on both the left and right sides, form a hairpin loop structure.
+- **`hairpin_information.csv`** – <small><code>qseqid</code></small> : unique sequence id from genome mapping results. <small><code>id</code></small> : unique seqeunce id from linearfold prediction results. <small><code>start</code></small> : hairpin loop start postion. <small><code>end</code></small> : hairpin loop end postion. <small><code>dis</code></small> : distance between the sequece and its' predicted hairpin loop.<small><code>structure</code></small> : predicted hairpin loop structure.
+<small><code>score</code></small> : hairpin loop score. <small><code>length</code></small> : sequence length <small><code>sequence</code></small> : real sequence.
 
-#### Example usage
+##### Example use (linearfold)
 ```sh
 ./main.sh -p predict -w linearfold  -c <your_output_folder>/integrate/prediction_input.fasta -m <your_output_folder>/integrate/blast_score_prediction_filter.txt   -f <your_fna_input_folder>/<fna_file_name>.fna -o <your_output_folder>/predict_linearfold
 ```
-
-
 ---
 
 ### Step 9 : `produce_final_form`
@@ -498,13 +657,18 @@ Produce main steps' final output.
 | `--lf <file>` | LinearFold results. |
 | `-o <dir>` | Output folder. |
 #### Example usage
+We combined the species reference mapping results, miRBase mapping results, and the prediction outputs from miRDeep2 and LinearFold into a single integrated table.
+
+sequence,mirBase,linearfold,mirdeep2,representative_id,qseqid_count,same_seq_ids,umi_count
+
+- **`final_form.csv`** – <small><code>sequence</code></small> : unique sequence from species refernce mapping results. <small><code>mirBase</code></small> : If this sequence can be mapped to miRBase, value is 1; otherwise, value is 0. <small><code>linearfold</code></small> : If this sequence predicted as miRNA by using linearfold tool, value is 1; otherwise, value is 0.<small><code>mirdeep2</code></small> : If this sequence predicted as miRNA by using mirdeep2 tool, value is 1; otherwise, value is 0. <small><code>representative_id</code></small> : pick one qseqid among the same sequences' qseqids.<small><code>qseqid_count</code></small> : The total count of the same sequencesqseqids.<small><code>same_seq_ids</code></small> : The sequences’ qseqids that share this same sequence together. <small><code>umi_count</code></small> : those qseqids for same sequences share how many umi if have umi.
 
 ```sh
 ./main.sh -p produce_final_form -c <your_output_folder>/integrate/prediction_input.fasta -m <your_output_folder>/map_mirna/blastn_hairpin_sequences.csv --inf <your_output_folder>/integrate/redundant_sequences_information.csv --mr <your_output_folder>/predict_mirdeep --lf <your_output_folder>/predict_linearfold/hairpin_information.csv  -o <your_output_folder>/produce_final_form
 ```
 ---
 
-### advanced step 3 : `additional_step`
+### Step 10 (Optional):  `additional_step`
 
 #### Description
 divided sequences to blocks based on their positions from final form.
@@ -526,7 +690,7 @@ divided sequences to blocks based on their positions from final form.
 ```
 ---
 
-### advanced step 4 : `simulate_blocks`
+### Step 11 (Optional):  `simulate_blocks`
 
 #### Description
 Simulation about genome mapping blocks and visualization.
@@ -549,42 +713,5 @@ Simulation about genome mapping blocks and visualization.
 ```
 ---
 
-### integration command : `all`
 
-#### Description
-Run full pipeline (extract → produce_final_form, except advanced steps).
 
-#### Options
-
-| option | description |
-|--------|-------------|
-| `-r <file>` | Raw data. |
-| `-l <int>` | Minimum length. |
-| `-F <pattern>` | Cleaning pattern. |
-| `-n <name>` | Database name. |
-| `--t1 <int>` | Fault tolerance bits. |
-| `--t2 <int>` | Tail tolerance bits. |
-| `--umi <flag>` | UMI flag. |
-| `--pq <int>` | Query coverage threshold. |
-| `--pp <int>` | Percent identity threshold. |
-| `--sl <int>` | Minimum sequence length (default 18). |
-| `--ll <int>` | Maximum sequence length (default 40). |
-| `--fna <file>` | Reference fna. |
-| `--gtf <file>` | gtf file. |
-| `--hairpin <file>` | miRNA hairpin fa reference. |
-| `-o <dir>` | Output folder. |
-#### Example usage
-
-```sh
-./main.sh -p all -r <your_fastq_folder>/<fastq_name>.fastq -l 12 -F *AACTGTAGGCACCATCAATXXXXXXXXXXXXAGATCGGAAGAGCACACGTCT*  -n ${bacteria} --t1 2 --t2 4 --umi 2 --pq 100 --pp 100 --sl 18 --ll 40 --fna <your_fna_input_folder>/<fna_file_name>.fna  --gtf <your_gtf_input_folder>/<gtf_file_name>.gtf --hairpin <your_hairpin_input_folder>/hairpin.fa -o <your_output_folder>/all_steps
-```
----
-
-## Examples
-
-```sh
-
-```
-
----
-to be continued ...
