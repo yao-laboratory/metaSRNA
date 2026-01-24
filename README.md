@@ -110,12 +110,12 @@ The **integration command** (`-p all`) runs **Step 1 through Step 9** of the pip
 #### Example Shell
 Using sample **SRR18745680** as an example, we provide shell scirpt for you.
 
-👉 [integration_command.sh](release_version/Demo/integration_command.sh)
+[integration_command.sh](release_version/Demo/integration_command.sh)
 
 ---
 
 
-## Different Running Cases with examples:
+### Different Running Cases with examples:
 ### (1) Single Known Reference Genome
 
 Using sample **SRR18745680** as an example, we provide three ready-to-use shell scripts depending on how you prefer to run the pipeline.
@@ -123,7 +123,7 @@ Using sample **SRR18745680** as an example, we provide three ready-to-use shell 
 #### **A. Integration Command (Main Steps in One Run)**
 Runs the main workflow using the `-p all` integration command.
 
-👉 [single_known_reference_main_steps_integration_command.sh](release_version/Demo/single_known_reference_main_steps_integration_command.sh)
+[single_known_reference_main_steps_integration_command.sh](release_version/Demo/single_known_reference_main_steps_integration_command.sh)
 
 ---
 
@@ -131,7 +131,7 @@ Runs the main workflow using the `-p all` integration command.
 Runs only the main steps individually.  
 Use this when you want to execute **selected steps**, or customize the main workflow.
 
-👉 [single_known_reference_main_steps.sh](release_version/Demo/single_known_reference_main_steps.sh)
+[single_known_reference_main_steps.sh](release_version/Demo/single_known_reference_main_steps.sh)
 
 ---
 
@@ -139,7 +139,7 @@ Use this when you want to execute **selected steps**, or customize the main work
 Runs **all** pipeline steps (including optional steps).  
 Use this when you want to explore or customize the complete workflow.
 
-👉 [single_known_reference_all_steps.sh](release_version/Demo/single_known_reference_all_steps.sh)
+[single_known_reference_all_steps.sh](release_version/Demo/single_known_reference_all_steps.sh)
 
 ---
 
@@ -150,7 +150,7 @@ Using sample **SRR18078867** as an example, we provide two ready-to-use shell sc
 #### **A. Main Steps Executed Step-by-Step**
 Runs only the main steps individually.
 
-👉 [species_unknown_main_steps.sh](release_version/Demo/species_unknown_main_steps.sh)
+[species_unknown_main_steps.sh](release_version/Demo/species_unknown_main_steps.sh)
 
 ---
 
@@ -158,7 +158,7 @@ Runs only the main steps individually.
 Runs **all** pipeline steps (including optional ones).  
 Use this when you want to explore or customize the complete workflow.
 
-👉 [species_unknown_all_steps.sh](release_version/Demo/species_unknown_all_steps.sh)
+[species_unknown_all_steps.sh](release_version/Demo/species_unknown_all_steps.sh)
 
 ---
 
@@ -170,7 +170,7 @@ Using sample **SRR684065** as an example. we provide three ready-to-use shell sc
 #### **A. Integration Command (Main Steps in One Run)**
 Runs the main workflow using the `-p all` integration command.
 
-👉 [multiple_known_reference_main_steps_integration_command.sh](release_version/Demo/multiple_known_reference_main_steps_integration_command.sh)
+[multiple_known_reference_main_steps_integration_command.sh](release_version/Demo/multiple_known_reference_main_steps_integration_command.sh)
 
 ---
 
@@ -178,7 +178,7 @@ Runs the main workflow using the `-p all` integration command.
 Runs only the main steps individually.  
 Use this when you want to execute **selected steps**, or customize the main workflow.
 
-👉 [multiple_known_reference_main_steps.sh](release_version/Demo/multiple_known_reference_main_steps.sh)
+[multiple_known_reference_main_steps.sh](release_version/Demo/multiple_known_reference_main_steps.sh)
 
 ---
 
@@ -186,7 +186,7 @@ Use this when you want to execute **selected steps**, or customize the main work
 Runs **all** pipeline steps (including optional ones).  
 Use this when you want to explore or customize the complete workflow.
 
-👉 [multiple_known_reference_all_steps.sh](release_version/Demo/multiple_known_reference_all_steps.sh)
+[multiple_known_reference_all_steps.sh](release_version/Demo/multiple_known_reference_all_steps.sh)
 
 ---
 
@@ -197,7 +197,7 @@ Using sample **SRR3382456** as an example. we provide ready-to-use shell script 
 can merge as single fastq: SRR3382456.fastq 
 
 #### **Preprocess Steps shell**
-👉 [multiple_known_reference_main_steps_integration_command.sh](release_version/Demo/multiple_known_reference_main_steps_integration_command.sh)
+[multiple_known_reference_main_steps_integration_command.sh](release_version/Demo/multiple_known_reference_main_steps_integration_command.sh)
 
 Then after preprocessing, the pair-wise fastqs can use above (1) or (2) or (3) any script to do the futher operations.
 
@@ -638,33 +638,40 @@ We used the LinearFold tool to determine whether our miRNA sequences, extended b
 ### Step 9 : `produce_final_form`
 
 #### Description
-Produce main steps' final output.
+Integrate species and miRNA datasets' mapping results and produce the final output tables.
 
 #### Input
-- Clean FASTA, miRNA mapping, duplicate report, prediction results.
+- clean FASTA file, reference genome fna file, miRNA mapping results,genome mapping filter results, Duplicate sequences information, miRDeep2 prediction results folder,
+LinearFold prediction results file.
 
 #### Output
-- Final sequence information.
+- Final sequence information and summary tables.
 
 #### Options
 
 | option | description |
 |--------|-------------|
-| `-c <file>` | Clean fasta. |
-| `-m <file>` | miRNA mapping score file. |
-| `--inf <file>` | Duplicate sequences report. |
-| `--mr <dir>` | miRDeep2 results. |
-| `--lf <file>` | LinearFold results. |
-| `-o <dir>` | Output folder. |
+| `-c <file>` | Clean FASTA file (after filtering length and removing duplicates) |
+| `-f <file>` | Reference genome in .fna format (from NCBI RefSeq/GenBank) |
+| `--mi <file>` | miRNA mapping score file |
+| `--mg <file>` | Genome mapping filter score file |
+| `--inf <file>` | Duplicate sequences information file |
+| `--mr <dir>` | miRDeep2 prediction results folder |
+| `--lf <file>` | LinearFold prediction results file |
+| `-o <dir>` | Output folder |
+
 #### Example usage
 We combined the species reference mapping results, miRBase mapping results, and the prediction outputs from miRDeep2 and LinearFold into a single integrated table.
 
-sequence,mirBase,linearfold,mirdeep2,representative_id,qseqid_count,same_seq_ids,umi_count
-
+output files:
 - **`final_form.csv`** – <small><code>sequence</code></small> : unique sequence from species refernce mapping results. <small><code>mirBase</code></small> : If this sequence can be mapped to miRBase, value is 1; otherwise, value is 0. <small><code>linearfold</code></small> : If this sequence predicted as miRNA by using linearfold tool, value is 1; otherwise, value is 0.<small><code>mirdeep2</code></small> : If this sequence predicted as miRNA by using mirdeep2 tool, value is 1; otherwise, value is 0. <small><code>representative_id</code></small> : pick one qseqid among the same sequences' qseqids.<small><code>qseqid_count</code></small> : The total count of the same sequencesqseqids.<small><code>same_seq_ids</code></small> : The sequences’ qseqids that share this same sequence together. <small><code>umi_count</code></small> : those qseqids for same sequences share how many umi if have umi.
 
+- **`ID_mapping_names_table.csv`** – <small><code>SACC_refseqID</code></small> : Reference sequence accession ID (SACC) from the genome database. <small><code>name</code></small> : Species or organism name associated with the reference sequence<code>internal_ID</code></small> : Unique internal identifier assigned to each reference sequence (numbered 1, 2, 3, ...).
+
+- **`summary_statistics_table.csv`** – <small><code>sequence</code></small> : Unique sequence from mapping results. <small><code>percentage(%)</code></small> : Mapping percentage to each species (pipe-separated if multiple species). <small><code>species_count</code></small> : Number of distinct species this sequence maps to. <small><code>internal_ID</code></small> : Internal species IDs this sequence maps to (pipe-separated if multiple species, corresponds to internal_ID in ID_mapping_names_table.csv).
+
 ```sh
-./main.sh -p produce_final_form -c <your_output_folder>/integrate/prediction_input.fasta -m <your_output_folder>/map_mirna/blastn_hairpin_sequences.csv --inf <your_output_folder>/integrate/redundant_sequences_information.csv --mr <your_output_folder>/predict_mirdeep --lf <your_output_folder>/predict_linearfold/hairpin_information.csv  -o <your_output_folder>/produce_final_form
+./main.sh -p produce_final_form -c <your_output_folder>/integrate/prediction_input.fasta -f <your_fna_input_folder>/<fna_file_name>.fna --mi <your_output_folder>/map_mirna/blastn_hairpin_sequences.csv --mg <your_output_folder>/map_genome/blast_score_filter.txt --inf <your_output_folder>/integrate/redundant_sequences_information.csv --mr <your_output_folder>/predict_mirdeep --lf <your_output_folder>/predict_linearfold/hairpin_information.csv -o <your_output_folder>/produce_final_form
 ```
 ---
 

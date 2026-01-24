@@ -20,4 +20,4 @@ umi_file="none"
 shortest_sequence_length="18"
 longest_sequence_legnth="40"
 
-./main.sh -p all -r $input_folder/${input_reads_file}.fastq -l $length -F ${tag}  -n ${bacteria} --t1 $tolerance_1 --t2 $tolerance_2 --umi $umi_parameter --pq $qcovhsp --pp $pident --sl $shortest_sequence_length --ll $longest_sequence_legnth --fna $fna_folder/${gcf_number}.fna  --gtf $gtf_folder${gcf_number}.gtf --hairpin $hairpin_folder/hairpin.fa -o $output_folder/all_steps
+./main.sh -p all -r $input_folder/${input_reads_file}.fastq -l $length -F ${tag}  -n ${bacteria} --t1 $tolerance_1 --t2 $tolerance_2 --umi $umi_parameter --pq $qcovhsp --pp $pident --sl $shortest_sequence_length --ll $longest_sequence_legnth --fna $fna_folder/${gcf_number}.fna  --gtf $gtf_folder/${gcf_number}.gtf --hairpin $hairpin_folder/hairpin.fa -o $output_folder/all_steps
