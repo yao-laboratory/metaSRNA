@@ -91,6 +91,23 @@ Usage:
 ```sh
  ./<path to main.sh>/main.sh -h
 ```
+main.sh help script: (partial, truncated for readability)
+```
+Running main assembly process in the folder ...
+Usage: ./main.sh -p <program> [options]
+
+Programs and their Required Options:
+  preprocess
+    - Preprocess the raw input files.
+    - Options:
+      -r <raw_data>                       Path(Paths) to the raw data file(files, more than one file, paths use space to seperate)
+      -w <preprocess functions>           Two way to choose: "merge": merge two fastq file as one fastq file; "unzip": unzip fastq.gz file to fastq file
+      -o <output_folder>                  Output folder including (fastq file as extract input)
+      
+  extract
+  ...
+  ```
+
 ## Diagram Overview 
 <img src="release_version/git_images/pipeline_graph.png" />
 
@@ -728,14 +745,29 @@ output files:
   - `temp_plot_{blockID}_{xmin}_{xmax}_{chrom}.png` – Temporary plot files about centroid block spatial distribution for every cluster. 
 
   - Figures Illustration:
-  <p align="center">
-  <img src="release_version/git_images/block1.png" width="33%" alt="Image 1">
-  <img src="release_version/git_images/block2.png" width="33%" alt="Image 2">
-  </p>
-  <p align="center">
-  <img src="release_version/git_images/block3.png" width="33%" alt="Image 3">
-  <img src="release_version/git_images/block4.png" width="33%" alt="Image 4">
-  </p>
+
+<table align="center">
+  <tr>
+    <td align="center">
+      <img src="release_version/git_images/block1.png" width="300" style="border: 2px solid #ddd;"><br>
+      <b>fully overlap block(.png)</b>
+    </td>
+    <td align="center">
+      <img src="release_version/git_images/block2.png" width="300" style="border: 2px solid #ddd;"><br>
+      <b>Singleton block(.png)</b>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <img src="release_version/git_images/block3.png" width="300" style="border: 2px solid #ddd;"><br>
+      <b>symmetric block(.png)</b>
+    </td>
+    <td align="center">
+      <img src="release_version/git_images/block4.png" width="300" style="border: 2px solid #ddd;"><br>
+      <b>partial overlap block(.png)</b>
+    </td>
+  </tr>
+</table>
 
 ##### Example use
 ```sh
