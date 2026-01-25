@@ -3,6 +3,7 @@ output_folder="../../output"
 fna_folder="../../database/fna_folder/dataset2"
 gtf_folder="../../database/gtf_folder/dataset2"
 hairpin_folder="../../database/hairpin_folder"
+refprok_database="../../database/refprok_folder"
 input_reads_file="SRR18078867"
 tag="*TGGAATTCTCGGGTGCCAAGGAACTCCA*"
 length="12"
@@ -19,7 +20,7 @@ shortest_sequence_length="18"
 longest_sequence_legnth="40"
 
 ./main.sh -p extract -r $input_folder/${input_reads_file}.fastq -o $output_folder/extract -l $length -F $tag  --t1 $tolerance_1 --t2 $tolerance_2 --umi $umi
-./main.sh -p detect_species -c $output_folder/extract/final_seq_12.fasta -o $output_folder/detect_species -t $species_number
+./main.sh -p detect_species -c $output_folder/extract/final_seq_12.fasta -o $output_folder/detect_species -t $species_number -d $refprok_database
 ./main.sh -p detect_species_additional_step -c $output_folder/detect_species/mapping.csv -o $output_folder/detect_species_addtional_step --of $fna_folder --og $gtf_folder -n $input_reads_file
 ./main.sh -p map_genome -f $fna_folder/combined_${input_reads_file}.fna -c $output_folder/extract/final_seq_${length}.fa -d $output_folder/map_genome/${bacteria} -n ${bacteria}  --pq $qcovhsp --pp $pident -o $output_folder/map_genome
 ./main.sh -p map_mirna -f $hairpin_folder/hairpin.fa -c $output_folder/extract/final_seq_${length}.fa -d $output_folder/map_mirna/hairpin_database -n hairpin  -o $output_folder/map_mirna

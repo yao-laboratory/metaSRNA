@@ -180,15 +180,7 @@ Generic Options:
   -h  Display this help message
 
 Examples:
-    $0 -p extract -r ../../input/test_data1.fastq -o ../../output/extract
-    $0 -p detect_species -c ../../output/extract/final_seq12.fasta -o ../../output/detect_species
-    $0 -p map_genome -f ../../output/detect_species/combined_gcf.fna -c ../../output/extract/final_seq12.fa -d ../../output/map_genome/top_species_database -n species  -o ../../output/map_genome
-    $0 -p map_mirna -f ../../database/microRNA_fa_database/hairpin.fa -c ../../output/extract/final_seq12.fa -d ../../output/map_mirna/hairpin_database -n hairpin  -o ../../output/map_mirna
-    $0 -p integrate -s ../../output/map_genome -m ../../output/map_mirna -o ../../output/integrate
-    $0 -p quantify -g ../../output/detect_species -m ../../output/map_genome/blast_score_filter.txt -u ../../output/extract/final_umi.fastq -o ../../output/quantify
-    $0 -p predict -w mirdeep2 -r ../../input/test_data1.fastq  -c ../../output/extract/final_seq12.fasta -m ../../output/map_genome/blast_score_filter.txt -f ../../output/detect_species/combined_gcf.fna -n mirdeep2 -o ../../output/predict_mirdeep
-    $0 -p predict -w linearfold  -c ../../output/extract/final_seq12.fasta -m ../../output/map_genome/blast_score_filter.txt  -f ../../output/detect_species/combined_gcf.fna  -o ../../output/predict_linearfold
-    $0 -p predict -w both -r ../../input/test_data1.fastq  -c ../../output/extract/final_seq12.fasta -m ../../output/map_genome/blast_score_filter.txt -f ../../output/detect_species/combined_gcf.fna -n both -o ../../output/predict_mirdeep
+    Demo shells in Folder: release_version/Demo
 EOF
     exit 1
 }
