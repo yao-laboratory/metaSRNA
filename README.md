@@ -3,7 +3,7 @@
 
 ## About
 
-MetaSRNA Pipeline provides an end-to-end solution for processing small RNA (sRNA) and microRNA (miRNA) sequencing data.  
+MetaSRNA is a unified computational toolkit designed specifically for exploratory small RNA analysis in prokaryotic and microbiome systems.   
 It covers the following processes:
 preprocessing, extraction, mapping to genomes and miRNA databases, quantification, prediction, integration, clustering and simulation.
 
@@ -48,7 +48,7 @@ conda activate install_main
 
    Or download directly from the NCBI website (not recommended).
    
-   (2) Download fna and gtf files from NCBI, already provide for you in: test_folder/input/genomic.fna,genomic.gtf.
+   (2) Download fna and gtf files from NCBI, or if you wanna use same study we tested, visit here: https://doi.org/10.5281/zenodo.17643841
 
    use wget:
    ```sh
@@ -60,7 +60,7 @@ conda activate install_main
    gunzip GCF_000005845.2_ASM584v2_genomic.gtf.gz
    ```
 
-   (3) Download micro RNA database, https://www.mirbase.org/download/, already provide for you in: test_folder/input/haipin.fa.
+   (3) Download micro RNA database, https://www.mirbase.org/download/, already provide for you in: https://doi.org/10.5281/zenodo.17643841
    ```
    wget https://www.mirbase.org/download/hairpin.fa
    ```
@@ -68,7 +68,7 @@ conda activate install_main
 
    4.1 Zenodo Download:
 
-    link: , folder name : prokaryote_database
+    link: https://doi.org/10.5281/zenodo.17643841, folder name : prokaryote_database
     
    4.2 NCBI download
 
@@ -670,6 +670,8 @@ output files:
 
 - **`summary_statistics_table.csv`** – <small><code>sequence</code></small> : Unique sequence from mapping results. <small><code>percentage(%)</code></small> : Mapping percentage to each species (pipe-separated if multiple species). <small><code>species_count</code></small> : Number of distinct species this sequence maps to. <small><code>internal_ID</code></small> : Internal species IDs this sequence maps to (pipe-separated if multiple species, corresponds to internal_ID in ID_mapping_names_table.csv).
 
+##### Example use
+
 ```sh
 ./main.sh -p produce_final_form -c <your_output_folder>/integrate/prediction_input.fasta -f <your_fna_input_folder>/<fna_file_name>.fna --mi <your_output_folder>/map_mirna/blastn_hairpin_sequences.csv --mg <your_output_folder>/map_genome/blast_score_filter.txt --inf <your_output_folder>/integrate/redundant_sequences_information.csv --mr <your_output_folder>/predict_mirdeep --lf <your_output_folder>/predict_linearfold/hairpin_information.csv -o <your_output_folder>/produce_final_form
 ```
@@ -677,21 +679,65 @@ output files:
 
 ### Step 10 (Optional):  `additional_step`
 
-#### Description
-divided sequences to blocks based on their positions from final form.
+Classify and group sequences into genomic blocks based on their mapping positions, overlap patterns, and sequence similarity. This step analyzes spatial relationships between mapped sequences and categorizes them into different block types for downstream analysis.
+
+#### Input
+- Final form CSV file (output from `produce_final_form` step)
+- Genome mapping file with gene annotations (from `quantify_genome` step)
+
+#### Output
+- Classified sequence blocks with detailed spatial information and mapping patterns.
 
 #### Options
 
 | option | description |
 |--------|-------------|
 | `-f <file>` | Final form file (from produce_final_form step). |
-| `-m <file>` | mapping genome file filtered by score. |
-| `--sl <int>` | Minimum block length (default 18). |
-| `--ll <int>` | Maximum block length (default 30). |
-| `--sc <int>` | Block sequences count threshold 1,n.(default 1,10), means one table from greater than(>) 1, the other greater than n. |
-| `-o <dir>` | Output folder. |
+| `-m <file>` | Genome mapping file with gene annotations. |
+| `--sl <int>` | Minimum block length threshold (default: 18 bp) |
+| `--ll <int>` | Maximum block length threshold (default: 30 bp) |
+| `--sc <int>` | Block sequence count threshold range (default: 1,10). Format: "min,max" where blocks are split into two categories - those with sequence count > min and those with count > max |
+| `-o <dir>` | Output folder |
+
 #### Example usage
 
+output files:
+- **`representative_sequence_results.csv`** – Representative sequences for each unique sequence group. 
+- **`mirdeep2_qseqid_list.csv`** – List of sequence IDs (qseqid) that were predicted as miRNAs by miRDeep2 tool.
+- **`sorted_representative_sequence_results.bed`** – BED format file sorted by chromosome and position. 
+- **`fully_overlapping_blocks.txt`** – Blocks where all sequences completely overlap with each other in genomic positions.
+- **`fully_symmetric_blocks.txt`** – Blocks where sequences show symmetric sequence similarity patterns (≥70% similarity threshold).
+- **`partially_overlapping_blocks.txt`** – Blocks where sequences have partial spatial overlaps but don't fully overlap.
+- **`singleton_blocks.txt`** – Individual sequences that don't cluster with other sequences.
+- **`final_all_blocks_table.csv`** – Comprehensive table containing all classified blocks with detailed information.
+- **`final_filtered_blocks_table_{min}_{max}_{threshold}.csv`** – Filtered blocks table containing only blocks meeting specified length and coverage criteria, excluding overlapping non-symmetric blocks.
+- **`image_cluster_mapping.txt`** – Mapping file showing which cluster each block visualization image belongs to.
+- **`each_image_closest_cluster.csv`** – CSV table mapping each block ID to its assigned cluster ID.
+- **`KMeans_plot.png`** – 2D PCA visualization of KMeans clustering results showing how blocks are grouped.
+- **`KMeans_plot_with_cluster_ids.png`** – KMeans clustering visualization with cluster ID labels annotated on each point.
+
+- Figure Illustration:
+<p align="center">
+  <a href="release_version/git_images/kmeans_clusters.png">
+    <img src="release_version/git_images/kmeans_clusters.png" width="60%" alt="Pipeline Diagram">
+  </a>
+</p>
+
+- **`middle_results/`** – Directory containing intermediate processing files and block visualization images:
+  - `binary_plot_{blockID}_{xmin}_{xmax}_{chrom}.png` – Binary visualization of centroid block spatial distribution for every cluster.
+  - `temp_plot_{blockID}_{xmin}_{xmax}_{chrom}.png` – Temporary plot files about centroid block spatial distribution for every cluster. 
+
+  - Figures Illustration:
+  <p align="center">
+  <img src="release_version/git_images/block1.png" width="33%" alt="Image 1">
+  <img src="release_version/git_images/block2.png" width="33%" alt="Image 2">
+  </p>
+  <p align="center">
+  <img src="release_version/git_images/block3.png" width="33%" alt="Image 3">
+  <img src="release_version/git_images/block4.png" width="33%" alt="Image 4">
+  </p>
+
+##### Example use
 ```sh
 ./main.sh -p additional_step -f <your_output_folder>/produce_final_form/final_form.csv  -m <your_output_folder>/quantify_genome/middle_results/blast_score_filter_add_gene.csv -o <your_output_folder>/additional_step 
 ```
@@ -700,21 +746,55 @@ divided sequences to blocks based on their positions from final form.
 ### Step 11 (Optional):  `simulate_blocks`
 
 #### Description
-Simulation about genome mapping blocks and visualization.
+Simulate genome mapping data by randomly selecting and combining sequences from classified block categories. This step performs statistical validation of the block classification algorithm by running multiple simulations and calculating precision/recall metrics across different classification strategies.
+
+#### Input
+- Block classification text files from `additional_step` (fully_overlapping_blocks.txt, fully_symmetric_blocks.txt, partially_overlapping_blocks.txt, singleton_blocks.txt)
+
+#### Output
+- Simulation about visualization showing spatial distribution of simulated blocks with color-coded clusters or precision and recall performance plots for different classification priority strategies.
 
 #### Options
 
 | option | description |
 |--------|-------------|
-| `-f <files>` | Input files (';' separated). |
-| `-n <int>` | Number of blocks. |
-| `--sg <int>` | Minimum gap threshold. |
-| `--bg <int>` | Maximum gap threshold. |
-| `-t <int>` | Simulation times. |
-| `-d <0/1>` | Figure mode (0=clustering figure only,for small simulation data, 1=precision/recall,for big simulation data). |
-| `-o <dir>` | Output folder. |
+| `-f <files>` | Input block classification files (semicolon-separated paths). Typically includes: fully_overlapping_blocks.txt; fully_symmetric_blocks.txt; partially_overlapping_blocks.txt; singleton_blocks.txt |
+| `-n <int>` | Number of blocks to simulate per run |
+| `--sg <int>` | Minimum gap distance (bp) between simulated blocks |
+| `--bg <int>` | Maximum gap distance (bp) between simulated blocks |
+| `-t <int>` | Number of independent simulation runs to perform |
+| `-d <0/1>` | Drawing mode: 0 = produce clustering visualization only (recommended for small datasets with < 200 blocks); 1 = produce precision/recall performance figures only (recommended for large datasets or statistical validation) |
+| `-o <dir>` | Output folder |
+
 #### Example usage
 
+output files:
+- **`gaps_between_{min}_{max}_simulation_times_{n}_final_blocks_clustering.png`** – Visualization showing spatial distribution of simulated blocks with color-coded clusters. Only generated when `-d 0` (clustering figure mode).
+
+- Figure Illustration:
+<p align="center">
+  <a href="release_version/git_images/simulation.png">
+    <img src="release_version/git_images/simulation.png" width="60%" alt="Pipeline Diagram">
+  </a>
+</p>
+
+- **`precision_recall_figures`** – Precision and recall performance plots for different classification priority strategies. Only generated when `-d 1` (precision/recall mode).
+
+- Figure Illustration:
+<p align="center">
+  <a href="release_version/git_images/precision_recall.png">
+    <img src="release_version/git_images/precision_recall.png" width="60%" alt="Pipeline Diagram">
+  </a>
+</p>
+
+- **`temp_results/`** – Temporary directory containing intermediate simulation results and the original simulated BED file.
+
+##### Example use
+Visualization command:
+```sh
+./main.sh -p simulate_blocks -f "<your_output_folder>/additional_step/fully_overlapping_blocks.txt;<your_output_folder>/additional_step/fully_symmetric_blocks.txt;<your_output_folder>/additional_step/partially_overlapping_blocks.txt;<your_output_folder>/additional_step/singleton_blocks.txt" -n 16 --sg 1 --bg 300  -t 1 -d 0  -o <your_output_folder>/simulate_blocks
+```
+Precision and recall performance plots:
 ```sh
 ./main.sh -p simulate_blocks -f "<your_output_folder>/additional_step/fully_overlapping_blocks.txt;<your_output_folder>/additional_step/fully_symmetric_blocks.txt;<your_output_folder>/additional_step/partially_overlapping_blocks.txt;<your_output_folder>/additional_step/singleton_blocks.txt" -n 100 --sg 1 --bg 300  -t 2 -d 1  -o <your_output_folder>/simulate_blocks
 ```
