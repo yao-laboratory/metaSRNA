@@ -4,8 +4,11 @@
 ## About
 
 MetaSRNA is a unified computational toolkit designed specifically for exploratory small RNA analysis in prokaryotic and microbiome systems.   
-It covers the following processes:
-preprocessing, extraction, mapping to genomes and miRNA databases, quantification, prediction, integration, clustering and simulation.
+It covers the following processes:preprocessing, extraction, mapping to genomes and miRNA databases, quantification, prediction, integration, \
+clustering and simulation.
+
+If interested, \
+in addition to the instructions below, you may also refer to: https://github.com/Eilenechou/metaSRNA_manuscripts for the preliminary analysis code associated with the Figures and Tables in this paper.
 
 ## Requirements
 
@@ -77,6 +80,8 @@ conda activate install_main
    dowload ref_prok_rep_genome 00~20, or 00~24(newest version). After unzipping, the files are already in BLAST database format. Just place all of them in one folder.
 
 ---
+
+
 # Pipeline Overview
 ## Command Overview
 Analyses are performed using the main script `main.sh` with modules specified by `-p <program>`.
@@ -831,6 +836,4 @@ Precision and recall performance plots:
 ./main.sh -p simulate_blocks -f "<your_output_folder>/additional_step/fully_overlapping_blocks.txt;<your_output_folder>/additional_step/fully_symmetric_blocks.txt;<your_output_folder>/additional_step/partially_overlapping_blocks.txt;<your_output_folder>/additional_step/singleton_blocks.txt" -n 100 --sg 1 --bg 300  -t 2 -d 1  -o <your_output_folder>/simulate_blocks
 ```
 ---
-
-
 
