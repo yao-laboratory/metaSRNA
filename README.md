@@ -3,12 +3,11 @@
 
 ## About
 
-MetaSRNA is a unified computational toolkit designed specifically for exploratory small RNA analysis in prokaryotic and microbiome systems.   
-It covers the following processes:preprocessing, extraction, mapping to genomes and miRNA databases, quantification, prediction, integration, \
-clustering and simulation.
+MetaSRNA is a unified computational toolkit designed specifically for exploratory small RNA analysis in prokaryotic and microbiome systems. It covers the following processes: Preprocessing, Extraction, Species Detection, Mapping to genomes and genomes Quatification, Mapping to miRNA database and miRNA database Quatification, Integration, Prediction, Clustering and Simulation.
 
-If interested, \
-in addition to the instructions below, you may also refer to: https://github.com/Eilenechou/metaSRNA_manuscripts for the preliminary analysis code associated with the Figures and Tables in this paper.
+If interested, in addition to the instructions below, you may also refer to: \
+https://github.com/Eilenechou/metaSRNA_manuscripts for the preliminary analysis code associated with the figures and tables in this paper. 
+https://zenodo.org/records/17260395 provides the main results generated from all datasets analyzed in this paper.
 
 ## Requirements
 
@@ -77,7 +76,7 @@ conda activate install_main
 
     link: https://ftp.ncbi.nlm.nih.gov/blast/db/ 
    
-   dowload ref_prok_rep_genome 00~20, or 00~24(newest version). After unzipping, the files are already in BLAST database format. Just place all of them in one folder.
+   dowload ref_prok_rep_genome 00 to 20, or 00 to 24(up to December 2025, latest release). After unzipping, the files are already in BLAST database format. Just place all of them in one folder.
 
 ---
 
@@ -619,7 +618,8 @@ If input fastq has umi:
 ### Step 8 : `predict mirdeep2` & `predict linearfold`
 
 #### Description
-Run predictive models.
+Run predictive models.\
+Note: miRDeep2 and LinearFold packages were preinstalled in our conda environment.
 
 #### Input
 - Clean fasta, mapping filter score, reference fna.
@@ -639,19 +639,19 @@ Run predictive models.
 | `-n <name>` | Database name. |
 | `-o <dir>` | Output folder. |
 #### Step 8.1: `predict mirdeep2` 
-output files: (all the files from mirdeep2 tool)
+output files: (all the files from miRDeep2 tool)
 - **`result_<date>.csv/html`** – the csv and HTML outputs show that the miRDeep2 tool identified novel miRNAs from the deep sequencing data.
-- **`mirdeep_runs/../output.mrd`** – output.mrd file shows miRBase miRNAs in data that were not scored by miRDeep2. Our metaSRNA in produce_final_form step will still count them in mirdeep2 results.
-##### Example use (mirdeep2)
+- **`mirdeep_runs/../output.mrd`** – output.mrd file shows miRBase miRNAs in data that were not scored by miRDeep2. Our metaSRNA in produce_final_form step will still count them in miRDeep2 results.
+##### Example use (miRDeep2)
 ```sh
 ./main.sh -p predict -w mirdeep2 -c <your_output_folder>/integrate/prediction_input.fasta  -f <your_fna_input_folder>/<fna_file_name>.fna -o <your_output_folder>/predict_mirdeep -n database
 ```
 #### Step 8.2: `predict linearfold` 
 We used the LinearFold tool to determine whether our miRNA sequences, extended by 40 bases on both the left and right sides, form a hairpin loop structure.
-- **`hairpin_information.csv`** – <small><code>qseqid</code></small> : unique sequence id from genome mapping results. <small><code>id</code></small> : unique seqeunce id from linearfold prediction results. <small><code>start</code></small> : hairpin loop start postion. <small><code>end</code></small> : hairpin loop end postion. <small><code>dis</code></small> : distance between the sequece and its' predicted hairpin loop.<small><code>structure</code></small> : predicted hairpin loop structure.
+- **`hairpin_information.csv`** – <small><code>qseqid</code></small> : unique sequence id from genome mapping results. <small><code>id</code></small> : unique seqeunce id from LinearFold tool prediction results. <small><code>start</code></small> : hairpin loop start postion. <small><code>end</code></small> : hairpin loop end postion. <small><code>dis</code></small> : distance between the sequece and its' predicted hairpin loop.<small><code>structure</code></small> : predicted hairpin loop structure.
 <small><code>score</code></small> : hairpin loop score. <small><code>length</code></small> : sequence length <small><code>sequence</code></small> : real sequence.
 
-##### Example use (linearfold)
+##### Example use (LinearFold)
 ```sh
 ./main.sh -p predict -w linearfold  -c <your_output_folder>/integrate/prediction_input.fasta -m <your_output_folder>/integrate/blast_score_prediction_filter.txt   -f <your_fna_input_folder>/<fna_file_name>.fna -o <your_output_folder>/predict_linearfold
 ```
@@ -686,7 +686,7 @@ LinearFold prediction results file.
 We combined the species reference mapping results, miRBase mapping results, and the prediction outputs from miRDeep2 and LinearFold into a single integrated table.
 
 output files:
-- **`final_form.csv`** – <small><code>sequence</code></small> : unique sequence from species refernce mapping results. <small><code>mirBase</code></small> : If this sequence can be mapped to miRBase, value is 1; otherwise, value is 0. <small><code>linearfold</code></small> : If this sequence predicted as miRNA by using linearfold tool, value is 1; otherwise, value is 0.<small><code>mirdeep2</code></small> : If this sequence predicted as miRNA by using mirdeep2 tool, value is 1; otherwise, value is 0. <small><code>representative_id</code></small> : pick one qseqid among the same sequences' qseqids.<small><code>qseqid_count</code></small> : The total count of the same sequencesqseqids.<small><code>same_seq_ids</code></small> : The sequences’ qseqids that share this same sequence together. <small><code>umi_count</code></small> : those qseqids for same sequences share how many umi if have umi.
+- **`final_form.csv`** – <small><code>sequence</code></small> : unique sequence from species refernce mapping results. <small><code>mirBase</code></small> : If this sequence can be mapped to miRBase, value is 1; otherwise, value is 0. <small><code>linearfold</code></small> : If this sequence predicted as miRNA by using LinearFold tool, value is 1; otherwise, value is 0.<small><code>mirdeep2</code></small> : If this sequence predicted as miRNA by using miRDeep2 tool, value is 1; otherwise, value is 0. <small><code>representative_id</code></small> : pick one qseqid among the same sequences' qseqids.<small><code>qseqid_count</code></small> : The total count of the same sequencesqseqids.<small><code>same_seq_ids</code></small> : The sequences’ qseqids that share this same sequence together. <small><code>umi_count</code></small> : those qseqids for same sequences share how many umi if have umi.
 
 - **`ID_mapping_names_table.csv`** – <small><code>SACC_refseqID</code></small> : Reference sequence accession ID (SACC) from the genome database. <small><code>name</code></small> : Species or organism name associated with the reference sequence<code>internal_ID</code></small> : Unique internal identifier assigned to each reference sequence (numbered 1, 2, 3, ...).
 
