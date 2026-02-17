@@ -7,7 +7,7 @@ MetaSRNA is a unified computational toolkit designed specifically for explorator
 
 If interested, in addition to the instructions below, you may also refer to: \
 https://github.com/Eilenechou/metaSRNA_manuscripts for the preliminary analysis code associated with the figures and tables in this paper. 
-https://zenodo.org/records/17260395 provides the main results generated from all datasets analyzed in this paper.
+https://zenodo.org/records/17260395 provides the main results analyzed in this paper. In the Zenodo link, the term `dataset` in the file names refers to each individual study included in the paper.
 
 ## Requirements
 
@@ -218,7 +218,7 @@ Using sample **SRR3382456** as an example. we provide ready-to-use shell script 
 can merge as single fastq: SRR3382456.fastq 
 
 #### **Preprocess Steps shell**
-[multiple_known_reference_main_steps_integration_command.sh](release_version/Demo/multiple_known_reference_main_steps_integration_command.sh)
+[pair-wise_fastq_preprocess.sh](release_version/Demo/pair-wise_fastq_preprocess.sh)
 
 Then after preprocessing, the pair-wise fastqs can use above (1) or (2) or (3) any script to do the futher operations.
 
